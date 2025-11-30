@@ -48,12 +48,19 @@ const App: React.FC = () => {
     // Auth Listener
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
-        // Construct UserProfile from session
+        // Fetch detailed profile including role
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        // Construct UserProfile
         const userProfile: UserProfile = {
           id: session.user.id,
           email: session.user.email || '',
           name: session.user.user_metadata.name || 'User',
-          role: session.user.user_metadata.role || UserRole.ORDINARY,
+          role: (profile?.role as UserRole) || UserRole.ORDINARY, // Use role from DB
           avatar: session.user.user_metadata.avatar,
           joinedDate: new Date(session.user.created_at).toLocaleDateString(),
         };

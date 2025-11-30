@@ -13,7 +13,14 @@ export enum ViewState {
 
 export enum UserRole {
   ORDINARY = 'Ordinary',
-  SERVICE_PROVIDER = 'Service Provider'
+  SERVICE_PROVIDER = 'Service Provider',
+  ADMIN = 'Admin'
+}
+
+export interface UserProfile {
+  email: string;
+  role: UserRole;
+  id?: string;
 }
 
 export enum NewsCategory {

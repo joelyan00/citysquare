@@ -156,6 +156,28 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
     }
   };
 
+  // Helper to linkify text
+  const linkify = (text: string) => {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    return text.split(urlRegex).map((part, i) => {
+      if (part.match(urlRegex)) {
+        return (
+          <a
+            key={i}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:underline break-all"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {part}
+          </a>
+        );
+      }
+      return part;
+    });
+  };
+
   // Inject Ads Logic
   const renderList = () => {
     const mixedList: React.ReactNode[] = [];
@@ -164,21 +186,23 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
       const videoId = item.youtubeUrl ? getYouTubeVideoId(item.youtubeUrl) : null;
       mixedList.push(
         <article key={item.id} className="bg-white rounded-[2rem] shadow-sm overflow-hidden border border-gray-100 transition-all hover:shadow-md mb-8">
-          {/* Responsive Image Height: h-64 on mobile, h-[500px] on desktop */}
-          <div className="relative h-64 md:h-[500px] bg-gray-200 group">
-            <img
-              src={item.imageUrl}
-              alt={item.title}
-              loading="lazy"
-              className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
-            />
-            <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md text-white text-xs font-black px-3 py-1.5 rounded-lg">
-              {item.category === NewsCategory.LOCAL ? city :
-                staticCategoryLabels[item.category as NewsCategory] ||
-                customCategories.find(c => c.id === item.category)?.name ||
-                item.category}
+          {/* Responsive Image Height: h-64 on mobile, h-[500px] on desktop - Only render if image exists */}
+          {item.imageUrl && (
+            <div className="relative h-64 md:h-[500px] bg-gray-200 group">
+              <img
+                src={item.imageUrl}
+                alt={item.title}
+                loading="lazy"
+                className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+              />
+              <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md text-white text-xs font-black px-3 py-1.5 rounded-lg">
+                {item.category === NewsCategory.LOCAL ? city :
+                  staticCategoryLabels[item.category as NewsCategory] ||
+                  customCategories.find(c => c.id === item.category)?.name ||
+                  item.category}
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="p-6 md:p-8">
             <h2 className="text-2xl md:text-4xl font-black text-gray-900 leading-tight mb-4 tracking-tight">
@@ -186,7 +210,7 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
             </h2>
 
             <div className={`text-gray-700 text-lg md:text-xl font-medium leading-relaxed mb-5 whitespace-pre-wrap ${expandedNewsId === item.id ? '' : 'line-clamp-3'}`}>
-              {expandedNewsId === item.id ? item.content : item.summary}
+              {expandedNewsId === item.id ? linkify(item.content) : linkify(item.summary)}
             </div>
 
             {/* YouTube Embed */}

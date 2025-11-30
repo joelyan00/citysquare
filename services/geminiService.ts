@@ -248,7 +248,9 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
   CRITICAL INSTRUCTIONS FOR MEDIA:
   1. IMAGES: You MUST try to extract the actual lead image URL from the search result. If found, put it in "image_url". Do NOT invent URLs. If no image is found, leave it empty.
   2. YOUTUBE: If the news is related to a video or has a YouTube video, find the YouTube link and put it in "youtube_url".
-  3. DUPLICATES: Do not generate multiple items for the exact same story.`;
+  3. DUPLICATES: Do not generate multiple items for the exact same story.
+  4. LINKS: If the news involves an application, registration, or official document, YOU MUST include the direct URL in the content (e.g. "Official Application Link: [URL]").
+  5. IMAGES: PRIORITIZE extracting the real image from the news source. Only use the "image_url" field if it is a real, accessible URL from the search result.`;
 
   try {
     const searchContext = `Search for trending news about "${topic}" in the last ${timeWindow}. Focus on: ${keywords}. Return ${articleCount} items.`;
@@ -280,20 +282,10 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
       let imageUrl = item.image_url && isValidUrl(item.image_url) ? item.image_url : undefined;
 
       if (!imageUrl) {
-        // Generate AI Image if real one is missing
-        // Throttle: wait 4s to avoid rate limit
-        if (index > 0) await delay(4000);
-        try {
-          // Cast category to NewsCategory for generateNewsImage as it expects that enum
-          const aiImageBase64 = await generateNewsImage(item.title, category as NewsCategory);
-          if (aiImageBase64) {
-            // Upload to Storage
-            const uploadedUrl = await uploadImageToSupabase(aiImageBase64, `news/${category}_${Date.now()}_${index}.png`);
-            imageUrl = uploadedUrl || `https://picsum.photos/seed/${item.title}/600/400`;
-          }
-        } catch (imgError) {
-          imageUrl = `https://picsum.photos/seed/${item.title}/600/400`;
-        }
+        // User requested to avoid unrealistic AI images.
+        // If no real image is found, we will fall back to a placeholder or undefined.
+        // We skip the generateNewsImage call here.
+        imageUrl = undefined;
       }
 
       // Clean URL
@@ -307,7 +299,7 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
         content: item.content,
         category,
         timestamp: Date.now(),
-        imageUrl: imageUrl || `https://picsum.photos/seed/${index}/600/400`,
+        imageUrl: imageUrl,
         source: `CitySquare 整理自 ${item.source_name || '互联网'}`,
         sourceUrl: sourceUrl,
         youtubeUrl: item.youtube_url
@@ -839,5 +831,65 @@ export const polishText = async (text: string): Promise<string> => {
   } catch (e) {
     console.error("Polish Text Error:", e);
     return text;
+  }
+};
+
+export const AdminDatabase = {
+  getUsers: async (): Promise<any[]> => {
+    if (!supabaseUrl) return [];
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Get Users Error:', error);
+      return [];
+    }
+    return data || [];
+  },
+
+  updateUserRole: async (userId: string, role: string): Promise<boolean> => {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ role })
+      .eq('id', userId);
+    return !error;
+  },
+
+  deletePost: async (postId: string): Promise<boolean> => {
+    const { error } = await supabase
+      .from('forum')
+      .delete()
+      .eq('id', postId);
+    return !error;
+  },
+
+  getPendingServices: async (): Promise<any[]> => {
+    // For demo, returning all services
+    const { data, error } = await supabase
+      .from('services')
+      .select('*')
+      .order('created_at', { ascending: false });
+    return data || [];
+  },
+
+  getPendingAds: async (): Promise<any[]> => {
+    // For demo, returning all ads
+    const { data, error } = await supabase
+      .from('ads')
+      .select('*')
+      .order('created_at', { ascending: false });
+    return data || [];
+  },
+
+  approveAd: async (adId: string): Promise<boolean> => {
+    // Placeholder: In real app, update status column
+    return true;
+  },
+
+  approveService: async (serviceId: string): Promise<boolean> => {
+    // Placeholder: In real app, update status column
+    return true;
   }
 };
