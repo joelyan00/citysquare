@@ -730,6 +730,28 @@ export const ForumDatabase = {
       images: item.images || [],
       videoUrl: item.video_url
     }));
+  },
+  getPostsByAuthor: async (authorName: string): Promise<ForumPost[]> => {
+    if (!supabaseUrl) return [];
+    const { data } = await supabase
+      .from('forum')
+      .select('*')
+      .eq('author', authorName)
+      .order('timestamp', { ascending: false });
+
+    return (data || []).map(item => ({
+      id: item.id,
+      title: item.title,
+      content: item.content,
+      author: item.author,
+      likes: item.likes,
+      comments: item.comments,
+      timestamp: item.timestamp,
+      isAiGenerated: item.is_ai_generated,
+      tags: item.tags || [],
+      images: item.images || [],
+      videoUrl: item.video_url
+    }));
   }
 };
 

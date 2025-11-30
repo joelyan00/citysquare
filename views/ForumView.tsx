@@ -15,7 +15,7 @@ interface ForumViewProps {
 
 const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
   const [posts, setPosts] = useState<ForumPost[]>([]);
-  const [activeTab, setActiveTab] = useState<'following' | 'trending' | 'latest'>('trending');
+  const [activeTab, setActiveTab] = useState<'following' | 'trending' | 'latest' | 'mine'>('trending');
   const [loading, setLoading] = useState(true);
   const [followedNames, setFollowedNames] = useState<string[]>([]);
   const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
@@ -113,6 +113,12 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
           data = await ForumDatabase.getFollowedPosts();
         } else {
           data = []; // Or redirect to login? For now just empty.
+        }
+      } else if (activeTab === 'mine') {
+        if (user) {
+          data = await ForumDatabase.getPostsByAuthor(user.email?.split('@')[0] || '');
+        } else {
+          data = [];
         }
       } else {
         data = await ForumDatabase.getPosts();
@@ -352,6 +358,14 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
             >
               <HelpCircle size={20} className="mr-2" strokeWidth={2.5} /> 最新
             </button>
+            {user && (
+              <button
+                onClick={() => setActiveTab('mine')}
+                className={`flex items-center pb-3 px-1 transition-colors ${activeTab === 'mine' ? 'text-indigo-600 border-b-4 border-indigo-600' : 'text-gray-400'}`}
+              >
+                <Users size={20} className="mr-2" strokeWidth={2.5} /> 我的
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -611,14 +625,6 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
 
                   {/* Right: Actions */}
                   <div className="flex items-center justify-end space-x-2 md:space-x-3">
-                    <button
-                      type="button"
-                      onClick={handleVoiceInput}
-                      className={`flex items-center px-3 md:px-4 py-2 rounded border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm font-medium transition-colors ${isRecording ? 'text-red-500 border-red-200 bg-red-50' : ''}`}
-                    >
-                      <Mic size={18} className="md:mr-1.5" /> <span className="hidden md:inline">语音输入</span>
-                    </button>
-
                     <button
                       type="button"
                       onClick={handleAiPolish}
