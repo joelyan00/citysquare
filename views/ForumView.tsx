@@ -302,70 +302,47 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
   return (
     <div className="bg-gray-50 min-h-full pb-6">
       <header className="bg-white sticky top-0 z-30 shadow-sm pt-4 pb-2">
-        <div className="max-w-4xl mx-auto px-5">
-          <div className="flex justify-between items-center mb-5">
-            <div>
-              <h1 className="text-3xl font-black text-gray-900 tracking-tight">社区论坛</h1>
-              <p className="text-sm text-gray-500 font-bold mt-1">热门话题实时更新</p>
-            </div>
-
-            <div className="flex items-center space-x-3">
-              {/* User Status / Avatar */}
+        <div className="max-w-4xl mx-auto px-4">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-black text-gray-900 tracking-tight">社区论坛</h2>
+            <div className="flex items-center gap-3">
               {user ? (
-                <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md ${['bg-red-500', 'bg-orange-500', 'bg-green-500', 'bg-blue-500', 'bg-purple-500', 'bg-pink-500'][
-                    (user.email?.charCodeAt(0) || 0) % 6
-                  ]
-                    }`}
-                  title={user.email}
-                >
-                  {user.email?.split('@')[0].slice(0, 2).toUpperCase()}
+                <div className="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-sm border-2 border-white shadow-sm">
+                  {user.email?.substring(0, 2).toUpperCase()}
                 </div>
               ) : (
-                <div
-                  onClick={() => onNavigate && onNavigate(ViewState.LOGIN)}
-                  className="bg-gray-100 text-gray-500 px-3 py-1.5 rounded-full text-xs font-bold cursor-pointer hover:bg-gray-200 transition-colors"
-                >
-                  未登录
-                </div>
+                <button onClick={() => onNavigate && onNavigate(ViewState.LOGIN)} className="text-sm font-bold text-gray-500 hover:text-gray-900">
+                  登录
+                </button>
               )}
-
               <button
                 onClick={handleCreatePostClick}
-                className="bg-indigo-600 text-white px-4 py-2 rounded-full font-bold text-sm flex items-center shadow-lg shadow-indigo-500/30 active:scale-95 transition-transform"
+                className="bg-indigo-600 text-white px-4 py-2 rounded-full font-bold shadow-lg shadow-indigo-200 active:scale-95 transition-all flex items-center"
               >
                 <Plus size={18} className="mr-1" strokeWidth={3} /> 发帖
               </button>
             </div>
           </div>
 
-          <div className="flex space-x-8 text-lg font-extrabold border-b border-gray-100">
-            <button
-              onClick={() => setActiveTab('following')}
-              className={`flex items-center pb-3 px-1 transition-colors ${activeTab === 'following' ? 'text-indigo-600 border-b-4 border-indigo-600' : 'text-gray-400'}`}
-            >
-              <Users size={20} className="mr-2" strokeWidth={2.5} /> 关注
-            </button>
-            <button
-              onClick={() => setActiveTab('trending')}
-              className={`flex items-center pb-3 px-1 transition-colors ${activeTab === 'trending' ? 'text-indigo-600 border-b-4 border-indigo-600' : 'text-gray-400'}`}
-            >
-              <Flame size={20} className="mr-2" strokeWidth={2.5} /> 热门
-            </button>
-            <button
-              onClick={() => setActiveTab('latest')}
-              className={`flex items-center pb-3 px-1 transition-colors ${activeTab === 'latest' ? 'text-indigo-600 border-b-4 border-indigo-600' : 'text-gray-400'}`}
-            >
-              <HelpCircle size={20} className="mr-2" strokeWidth={2.5} /> 最新
-            </button>
-            {user && (
+          {/* Redesigned Tabs: Segmented Control */}
+          <div className="flex items-center bg-gray-100 p-1 rounded-xl mb-2 overflow-x-auto no-scrollbar">
+            {[
+              { id: 'following', label: '关注' },
+              { id: 'trending', label: '热门' },
+              { id: 'latest', label: '最新' },
+              ...(user ? [{ id: 'mine', label: '我的' }] : [])
+            ].map((tab) => (
               <button
-                onClick={() => setActiveTab('mine')}
-                className={`flex items-center pb-3 px-1 transition-colors ${activeTab === 'mine' ? 'text-indigo-600 border-b-4 border-indigo-600' : 'text-gray-400'}`}
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${activeTab === tab.id
+                    ? 'bg-white text-indigo-600 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                  }`}
               >
-                <Users size={20} className="mr-2" strokeWidth={2.5} /> 我的
+                {tab.label}
               </button>
-            )}
+            ))}
           </div>
         </div>
       </header>
@@ -494,15 +471,15 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
                       onClick={(e) => handleLike(post, e)}
                       className="flex items-center space-x-2 hover:text-red-500 transition-colors text-gray-500"
                     >
-                      <Heart size={24} strokeWidth={2.5} />
-                      <span className="text-base font-extrabold">{post.likes}</span>
+                      <Heart size={20} className={post.likes > 0 ? "fill-red-500 text-red-500" : ""} />
+                      <span className="font-bold">{post.likes}</span>
                     </button>
                     <button
                       onClick={(e) => handleCommentClick(post, e)}
                       className="flex items-center space-x-2 hover:text-blue-500 transition-colors text-gray-500"
                     >
-                      <MessageCircle size={24} strokeWidth={2.5} />
-                      <span className="text-base font-extrabold">{post.comments}</span>
+                      <MessageCircle size={20} />
+                      <span className="font-bold">{post.comments}</span>
                     </button>
                   </div>
 
@@ -520,43 +497,38 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
 
                 {/* Comments Section */}
                 {expandedCommentPostId === post.id && (
-                  <div className="mt-6 pt-6 border-t border-gray-100 animate-[fadeIn_0.3s]" onClick={e => e.stopPropagation()}>
+                  <div className="mt-6 pt-6 border-t border-gray-100 animate-[fadeIn_0.2s]" onClick={e => e.stopPropagation()}>
                     <h4 className="font-bold text-gray-900 mb-4">评论 ({post.comments})</h4>
 
                     {/* Comment List */}
-                    <div className="space-y-4 mb-6">
-                      {post.commentsList && post.commentsList.length > 0 ? (
-                        post.commentsList.map(comment => (
-                          <div key={comment.id} className="bg-gray-50 p-4 rounded-xl">
-                            <div className="flex justify-between items-start mb-1">
-                              <span className="font-bold text-indigo-600 text-sm">{comment.author}</span>
-                              <span className="text-xs text-gray-400">{new Date(comment.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                            </div>
-                            <p className="text-gray-700 text-sm">{comment.content}</p>
+                    <div className="space-y-4 mb-6 max-h-60 overflow-y-auto">
+                      {post.commentsList?.map(comment => (
+                        <div key={comment.id} className="bg-gray-50 p-3 rounded-xl">
+                          <div className="flex justify-between items-start mb-1">
+                            <span className="font-bold text-sm text-gray-900">@{comment.author}</span>
+                            <span className="text-xs text-gray-400">{Math.floor((Date.now() - comment.timestamp) / 60000)}分钟前</span>
                           </div>
-                        ))
-                      ) : (
-                        <div className="text-center text-gray-400 text-sm py-4">暂无评论，快来抢沙发吧！</div>
+                          <p className="text-gray-700 text-sm">{comment.content}</p>
+                        </div>
+                      ))}
+                      {(!post.commentsList || post.commentsList.length === 0) && (
+                        <p className="text-gray-400 text-sm text-center py-2">暂无评论，快来抢沙发吧！</p>
                       )}
                     </div>
 
-                    {/* Quick Comment Input */}
-                    <form onSubmit={(e) => handleSubmitComment(post.id, e)} className="relative">
+                    {/* Add Comment Form */}
+                    <form onSubmit={(e) => handleSubmitComment(post.id, e)} className="flex gap-2">
                       <input
                         type="text"
-                        placeholder={user ? "写下你的评论..." : "登录后发表评论..."}
+                        placeholder="写下你的评论..."
                         value={newCommentContent}
                         onChange={e => setNewCommentContent(e.target.value)}
-                        onFocus={() => {
-                          if (!user && onNavigate) onNavigate(ViewState.LOGIN);
-                        }}
-                        className="w-full bg-gray-100 border-none rounded-full py-3 pl-5 pr-14 text-sm font-medium focus:ring-2 focus:ring-indigo-500"
-                        autoFocus={!!user}
+                        className="flex-1 bg-gray-100 border-transparent focus:bg-white focus:border-indigo-500 rounded-full px-4 py-2 text-sm outline-none transition-all"
                       />
                       <button
                         type="submit"
                         disabled={submittingComment || !newCommentContent.trim()}
-                        className="absolute right-2 top-1.5 bg-indigo-600 text-white p-1.5 rounded-full hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                        className="bg-indigo-600 text-white p-2 rounded-full hover:bg-indigo-700 disabled:opacity-50 transition-colors"
                       >
                         <Send size={16} />
                       </button>
@@ -606,13 +578,14 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
                     />
                   </div>
 
-                  {/* Content Input */}
-                  <div className="border border-gray-200 rounded-md p-3 focus-within:border-blue-500 transition-all bg-gray-50/50 flex-1 min-h-[200px]">
+                  {/* Content Input - Fixed Height for Mobile Cursor Issue */}
+                  <div className="border border-gray-200 rounded-md p-3 focus-within:border-blue-500 transition-all bg-gray-50/50 min-h-[200px]">
                     <textarea
                       placeholder="展开叙述..."
                       value={newPostContent}
                       onChange={e => setNewPostContent(e.target.value)}
                       className="w-full h-full bg-transparent outline-none text-gray-600 resize-none placeholder-gray-300 text-base leading-relaxed"
+                      style={{ minHeight: '180px' }}
                     />
                   </div>
 
