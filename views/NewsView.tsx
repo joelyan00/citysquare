@@ -51,6 +51,8 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
 
   const [showCategoryModal, setShowCategoryModal] = useState(false);
 
+
+
   // Persist active category whenever it changes
   useEffect(() => {
     localStorage.setItem(CATEGORY_STORAGE_KEY, activeCategory);
@@ -70,6 +72,23 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
     }))
   ];
 
+  // Overflow Detection
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+  const [showScrollButton, setShowScrollButton] = useState(false);
+
+  const checkOverflow = useCallback(() => {
+    if (scrollContainerRef.current) {
+      const { scrollWidth, clientWidth } = scrollContainerRef.current;
+      setShowScrollButton(scrollWidth > clientWidth);
+    }
+  }, []);
+
+  useEffect(() => {
+    checkOverflow();
+    window.addEventListener('resize', checkOverflow);
+    return () => window.removeEventListener('resize', checkOverflow);
+  }, [checkOverflow, allCategories]); // Re-check when categories change
+
   // 1. Initial Data Load from DB
   const loadFromDB = useCallback(async () => {
     setLoadingDb(true);
@@ -78,7 +97,7 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
     const config = await ConfigService.get();
     setCustomCategories(config.news.customCategories || []);
 
-    const data = await NewsDatabase.getByCategory(activeCategory as NewsCategory); // Cast for now, service handles string
+    const data = await NewsDatabase.getByCategory(activeCategory as NewsCategory, city); // Cast for now, service handles string
     setNewsData(data);
 
     // Load Ads
@@ -86,7 +105,7 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
     setAds(activeAds);
 
     setLoadingDb(false);
-  }, [activeCategory]);
+  }, [activeCategory, city]);
 
   useEffect(() => {
     loadFromDB();
@@ -309,7 +328,10 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
 
           {/* Categories */}
           <div className="relative">
-            <div className="flex overflow-x-auto px-4 pb-4 no-scrollbar gap-2 md:gap-3 w-full pr-12">
+            <div
+              ref={scrollContainerRef}
+              className={`flex overflow-x-auto px-4 pb-4 no-scrollbar gap-2 md:gap-3 w-full ${showScrollButton ? 'pr-12' : ''}`}
+            >
               {allCategories.map((cat) => (
                 <button
                   key={cat.id}
@@ -338,15 +360,17 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
               ))}
             </div>
 
-            {/* Expand Button (Absolute Positioned with Gradient Fade) */}
-            <div className="absolute right-0 top-0 bottom-4 w-16 bg-gradient-to-l from-white via-white to-transparent flex justify-end items-center pr-4 pointer-events-none">
-              <button
-                onClick={() => setShowCategoryModal(true)}
-                className="pointer-events-auto bg-gray-100 hover:bg-gray-200 text-gray-600 p-2 rounded-full shadow-sm transition-colors"
-              >
-                <ChevronDown size={20} strokeWidth={2.5} />
-              </button>
-            </div>
+            {/* Expand Button (Absolute Positioned with Gradient Fade) - Only show if overflowing */}
+            {showScrollButton && (
+              <div className="absolute right-0 top-0 bottom-4 w-16 bg-gradient-to-l from-white via-white to-transparent flex justify-end items-center pr-4 pointer-events-none">
+                <button
+                  onClick={() => setShowCategoryModal(true)}
+                  className="pointer-events-auto bg-gray-100 hover:bg-gray-200 text-gray-600 p-2 rounded-full shadow-sm transition-colors"
+                >
+                  <ChevronDown size={20} strokeWidth={2.5} />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </header>

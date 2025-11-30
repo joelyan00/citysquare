@@ -17,7 +17,8 @@ const fromDbSchema = (item: any): NewsItem => ({
   imageUrl: item.image_url || item.imageUrl,
   source: item.source,
   sourceUrl: item.source_url || item.sourceUrl,
-  youtubeUrl: item.youtube_url || item.youtubeUrl
+  youtubeUrl: item.youtube_url || item.youtubeUrl,
+  city: item.city
 });
 
 // Helper to map Frontend camelCase to DB snake_case
@@ -31,7 +32,8 @@ const toDbSchema = (item: NewsItem) => ({
   image_url: item.imageUrl,
   source: item.source,
   source_url: item.sourceUrl,
-  youtube_url: item.youtubeUrl
+  youtube_url: item.youtubeUrl,
+  city: item.city
 });
 
 // Enhanced cleanJsonString to be more robust
@@ -302,7 +304,8 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
         imageUrl: imageUrl,
         source: `CitySquare 整理自 ${item.source_name || '互联网'}`,
         sourceUrl: sourceUrl,
-        youtubeUrl: item.youtube_url
+        youtubeUrl: item.youtube_url,
+        city: category === NewsCategory.LOCAL ? context : undefined
       });
     }
 
@@ -315,7 +318,7 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
 };
 
 export const NewsDatabase = {
-  getByCategory: async (category: string): Promise<NewsItem[]> => {
+  getByCategory: async (category: string, city?: string): Promise<NewsItem[]> => {
     if (!supabaseUrl) return [];
 
     // Get Limit from Config
@@ -336,10 +339,16 @@ export const NewsDatabase = {
       if (customCat) limit = customCat.retentionLimit || 50;
     }
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('news')
       .select('*')
-      .eq('category', category)
+      .eq('category', category);
+
+    if (category === NewsCategory.LOCAL && city && city !== '本地') {
+      query = query.eq('city', city);
+    }
+
+    const { data, error } = await query
       .order('timestamp', { ascending: false })
       .limit(limit);
 

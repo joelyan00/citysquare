@@ -37,6 +37,7 @@ export interface NewsItem {
   summary: string;
   content: string; // Full content
   category: string;
+  city?: string; // For Local news
   timestamp: number;
   imageUrl: string;
   source: string;
