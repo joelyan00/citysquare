@@ -225,10 +225,25 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
             </div>
 
             <div className="flex items-center space-x-3">
-              {/* Admin Controlled: No manual generate button here anymore */}
-              <div className="bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-full text-xs font-black flex items-center">
-                <Zap size={14} className="mr-1 fill-current" /> CitySquare 驱动
-              </div>
+              {/* User Status / Avatar */}
+              {user ? (
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md ${['bg-red-500', 'bg-orange-500', 'bg-green-500', 'bg-blue-500', 'bg-purple-500', 'bg-pink-500'][
+                    (user.email?.charCodeAt(0) || 0) % 6
+                    ]
+                    }`}
+                  title={user.email}
+                >
+                  {user.email?.split('@')[0].slice(0, 2).toUpperCase()}
+                </div>
+              ) : (
+                <div
+                  onClick={() => onNavigate && onNavigate(ViewState.LOGIN)}
+                  className="bg-gray-100 text-gray-500 px-3 py-1.5 rounded-full text-xs font-bold cursor-pointer hover:bg-gray-200 transition-colors"
+                >
+                  未登录
+                </div>
+              )}
 
               <button
                 onClick={handleCreatePostClick}
