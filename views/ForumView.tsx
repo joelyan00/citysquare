@@ -646,22 +646,8 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
               <div className="p-4 md:p-6 border-t md:border-none bg-white shrink-0">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
 
-                  {/* Left: Category & Image */}
+                  {/* Left: Image Upload */}
                   <div className="flex items-center justify-between md:justify-start space-x-4">
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="mr-2">发布至:</span>
-                      <div className="relative">
-                        <select className="appearance-none bg-white border border-gray-300 text-gray-700 py-1 pl-3 pr-8 rounded leading-tight focus:outline-none focus:border-gray-500">
-                          <option>国际时事</option>
-                          <option>社会热点</option>
-                          <option>生活杂谈</option>
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                          <ChevronDown size={14} />
-                        </div>
-                      </div>
-                    </div>
-
                     {/* Image Upload Trigger */}
                     <label className="cursor-pointer text-gray-400 hover:text-gray-600 transition-colors p-2" title="上传图片">
                       <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageUpload} />
