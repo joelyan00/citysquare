@@ -148,21 +148,19 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
 
   const handleCommentClick = (post: ForumPost, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!user) {
-      if (onNavigate) onNavigate(ViewState.LOGIN);
+    // Allow guests to view comments
+
+    // Toggle comment section
+    if (expandedCommentPostId === post.id) {
+      setExpandedCommentPostId(null);
     } else {
-      // Toggle comment section
-      if (expandedCommentPostId === post.id) {
-        setExpandedCommentPostId(null);
-      } else {
-        setExpandedCommentPostId(post.id);
-        // Fetch comments
-        ForumDatabase.getCommentsByPostId(post.id).then(comments => {
-          setPosts(prevPosts => prevPosts.map(p =>
-            p.id === post.id ? { ...p, commentsList: comments } : p
-          ));
-        });
-      }
+      setExpandedCommentPostId(post.id);
+      // Fetch comments
+      ForumDatabase.getCommentsByPostId(post.id).then(comments => {
+        setPosts(prevPosts => prevPosts.map(p =>
+          p.id === post.id ? { ...p, commentsList: comments } : p
+        ));
+      });
     }
   };
 
@@ -381,11 +379,14 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
                     <form onSubmit={(e) => handleSubmitComment(post.id, e)} className="relative">
                       <input
                         type="text"
-                        placeholder="写下你的评论..."
+                        placeholder={user ? "写下你的评论..." : "登录后发表评论..."}
                         value={newCommentContent}
                         onChange={e => setNewCommentContent(e.target.value)}
+                        onFocus={() => {
+                          if (!user && onNavigate) onNavigate(ViewState.LOGIN);
+                        }}
                         className="w-full bg-gray-100 border-none rounded-full py-3 pl-5 pr-14 text-sm font-medium focus:ring-2 focus:ring-indigo-500"
-                        autoFocus
+                        autoFocus={!!user}
                       />
                       <button
                         type="submit"
