@@ -59,7 +59,7 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
   }, [activeCategory]);
 
   // Prepare all categories list for easy rendering
-  const allCategories = [
+  const allCategories = React.useMemo(() => [
     ...Object.values(NewsCategory).map(cat => ({
       id: cat,
       label: cat === NewsCategory.LOCAL ? city : (staticCategoryLabels[cat] || cat),
@@ -70,7 +70,7 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
       label: cat.name,
       isLocal: false
     }))
-  ];
+  ], [city, customCategories]);
 
   // Overflow Detection
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
@@ -155,8 +155,25 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
     setIsRefreshing(false);
   };
 
-  const toggleExpand = (id: string) => {
-    setExpandedNewsId(expandedNewsId === id ? null : id);
+  const toggleExpand = async (id: string) => {
+    if (expandedNewsId === id) {
+      setExpandedNewsId(null);
+      return;
+    }
+
+    // Lazy Load Content if missing
+    const item = newsData.find(n => n.id === id);
+    if (item && !item.content) {
+      // Optimistically expand (show loading)
+      setExpandedNewsId(id);
+
+      const content = await NewsDatabase.getNewsContent(id);
+      if (content) {
+        setNewsData(prev => prev.map(n => n.id === id ? { ...n, content } : n));
+      }
+    } else {
+      setExpandedNewsId(id);
+    }
   };
 
   const handleManualCitySubmit = async () => {
@@ -229,7 +246,9 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
             </h2>
 
             <div className={`text-gray-700 text-lg md:text-xl font-medium leading-relaxed mb-5 whitespace-pre-wrap ${expandedNewsId === item.id ? '' : 'line-clamp-3'}`}>
-              {expandedNewsId === item.id ? linkify(item.content) : linkify(item.summary)}
+              {expandedNewsId === item.id ? (
+                item.content ? linkify(item.content) : <span className="text-brand-500 animate-pulse">正在加载全文...</span>
+              ) : linkify(item.summary)}
             </div>
 
             {/* YouTube Embed */}

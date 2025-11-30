@@ -318,6 +318,16 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
 };
 
 export const NewsDatabase = {
+  getNewsContent: async (id: string): Promise<string | null> => {
+    if (!supabaseUrl) return null;
+    const { data } = await supabase
+      .from('news')
+      .select('content')
+      .eq('id', id)
+      .single();
+    return data?.content || null;
+  },
+
   getByCategory: async (category: string, city?: string): Promise<NewsItem[]> => {
     if (!supabaseUrl) return [];
 
@@ -341,7 +351,7 @@ export const NewsDatabase = {
 
     let query = supabase
       .from('news')
-      .select('*')
+      .select('id, title, summary, category, timestamp, image_url, source, source_url, youtube_url, city')
       .eq('category', category);
 
     if (category === NewsCategory.LOCAL && city && city !== '本地') {
