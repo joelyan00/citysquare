@@ -128,7 +128,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onNavigate, city = '本地', 
   return (
     <div className="bg-gray-50 min-h-full">
       <div className="max-w-4xl mx-auto bg-white min-h-full shadow-2xl overflow-hidden min-h-screen">
-        <div className="bg-gradient-to-br from-brand-500 to-brand-700 text-white p-8 pt-14 rounded-b-[3rem] shadow-xl shadow-brand-500/20">
+        <div className="bg-gradient-to-br from-violet-600 to-indigo-600 text-white p-8 pt-14 rounded-b-[3rem] shadow-xl shadow-indigo-500/20">
           <div className="flex items-center space-x-5">
             {user.avatar ? (
               <img
@@ -143,8 +143,8 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onNavigate, city = '本地', 
             )}
             <div>
               <h1 className="text-3xl font-black tracking-tight">{user.name}</h1>
-              <p className="text-brand-100 text-base font-bold mt-1">{city} • {user.role === UserRole.SERVICE_PROVIDER ? '服务商' : '普通用户'}</p>
-              <div className="mt-3 flex space-x-4 text-sm font-bold text-brand-50">
+              <p className="text-indigo-100 text-base font-bold mt-1">{city} • {user.role === UserRole.SERVICE_PROVIDER ? '服务商' : '普通用户'}</p>
+              <div className="mt-3 flex space-x-4 text-sm font-bold text-indigo-50">
                 <span className="bg-white/10 px-3 py-1 rounded-full">ID: {user.id.slice(0, 6)}</span>
               </div>
             </div>
@@ -155,7 +155,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onNavigate, city = '本地', 
           {/* Ad Banner / Create Ad Button */}
           <button
             onClick={() => onNavigate && onNavigate(ViewState.CREATE_AD)}
-            className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-white p-4 rounded-2xl shadow-lg mb-6 flex items-center justify-between active:scale-95 transition-transform"
+            className="w-full bg-gradient-to-r from-orange-400 to-pink-500 text-white p-4 rounded-2xl shadow-lg mb-6 flex items-center justify-between active:scale-95 transition-transform"
           >
             <div className="flex items-center">
               <div className="bg-white/20 p-2 rounded-xl mr-3">
