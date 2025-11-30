@@ -442,6 +442,52 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
                   {post.content}
                 </div>
 
+                {/* Video Player */}
+                {post.videoUrl && (
+                  <div className="mb-6 rounded-xl overflow-hidden shadow-sm">
+                    {post.videoUrl.includes('youtube.com') || post.videoUrl.includes('youtu.be') ? (
+                      <iframe
+                        width="100%"
+                        height="315"
+                        src={`https://www.youtube.com/embed/${post.videoUrl.match(/(?:v=|youtu\.be\/)([^&]+)/)?.[1]}`}
+                        title="YouTube video player"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="w-full aspect-video"
+                      ></iframe>
+                    ) : post.videoUrl.includes('bilibili.com') ? (
+                      <iframe
+                        width="100%"
+                        height="315"
+                        src={`https://player.bilibili.com/player.html?bvid=${post.videoUrl.match(/video\/(BV[a-zA-Z0-9]+)/)?.[1]}&page=1&high_quality=1&danmaku=0`}
+                        title="Bilibili video player"
+                        frameBorder="0"
+                        allowFullScreen
+                        className="w-full aspect-video"
+                      ></iframe>
+                    ) : (
+                      <a href={post.videoUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center">
+                        <Video size={20} className="mr-2" /> 观看视频
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                {/* Image Grid */}
+                {post.images && post.images.length > 0 && (
+                  <div className={`grid gap-2 mb-6 ${post.images.length === 1 ? 'grid-cols-1' : 'grid-cols-2 md:grid-cols-3'}`}>
+                    {post.images.map((img, idx) => (
+                      <img
+                        key={idx}
+                        src={img}
+                        alt={`Post image ${idx + 1}`}
+                        className={`rounded-xl object-cover w-full h-full ${post.images!.length === 1 ? 'max-h-96' : 'aspect-square'}`}
+                      />
+                    ))}
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between text-gray-500 border-t border-gray-100 pt-5">
                   <div className="flex items-center space-x-6">
                     <button
