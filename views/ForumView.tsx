@@ -230,7 +230,7 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md ${['bg-red-500', 'bg-orange-500', 'bg-green-500', 'bg-blue-500', 'bg-purple-500', 'bg-pink-500'][
                     (user.email?.charCodeAt(0) || 0) % 6
-                    ]
+                  ]
                     }`}
                   title={user.email}
                 >
@@ -304,10 +304,15 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
                       </span>
                     )}
                   </div>
-                  <span className="text-xs font-bold text-gray-400 flex items-center whitespace-nowrap ml-2">
-                    <Clock size={14} className="mr-1" />
-                    {Math.floor((Date.now() - post.timestamp) / 60000)}分钟前
-                  </span>
+                  <div className="flex flex-col items-end ml-2">
+                    <span className="text-sm font-bold text-indigo-600 mb-1">
+                      @{post.author}
+                    </span>
+                    <span className="text-xs font-bold text-gray-400 flex items-center whitespace-nowrap">
+                      <Clock size={14} className="mr-1" />
+                      {Math.floor((Date.now() - post.timestamp) / 60000)}分钟前
+                    </span>
+                  </div>
 
                   {/* Follow Button */}
                   {user && post.author !== (user.email?.split('@')[0]) && (

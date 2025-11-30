@@ -17,7 +17,14 @@ const LOCATION_CACHE_KEY = 'urbanhub_location_cache';
 const LOCATION_CACHE_DURATION = 3600 * 1000; // 1 Hour
 
 const App: React.FC = () => {
-  const [currentView, setCurrentView] = useState<ViewState>(ViewState.NEWS);
+  const [currentView, setCurrentView] = useState<ViewState>(() => {
+    const saved = localStorage.getItem('urbanhub_current_view');
+    return (saved as ViewState) || ViewState.NEWS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('urbanhub_current_view', currentView);
+  }, [currentView]);
   const [apiKeyMissing, setApiKeyMissing] = useState(false);
   const [city, setCity] = useState<string>('本地');
   const [user, setUser] = useState<UserProfile | null>(null);
