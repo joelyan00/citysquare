@@ -280,6 +280,8 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
     const finalItems: NewsItem[] = [];
 
     for (const [index, item] of items.entries()) {
+      if (!item) continue;
+
       // Image generation logic
       let imageUrl = item.image_url && isValidUrl(item.image_url) ? item.image_url : undefined;
 
