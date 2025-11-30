@@ -591,6 +591,139 @@ export const ForumDatabase = {
   clearAll: async () => {
     if (!supabaseUrl) return;
     await supabase.from('forum').delete().neq('id', '0');
+  },
+
+  // Comment Methods
+  addComment: async (postId: string, comment: any) => {
+    if (!supabaseUrl) return;
+
+    // 1. Insert Comment
+    const { error } = await supabase.from('forum_comments').insert({
+      id: comment.id,
+      post_id: postId,
+      author: comment.author,
+      content: comment.content,
+      likes: comment.likes,
+      timestamp: comment.timestamp
+    });
+
+    if (error) {
+      console.error("Failed to add comment:", error);
+      throw error;
+    }
+
+    // 2. Increment Comment Count on Post
+    // Note: This is a simple increment. For strict consistency, use an RPC or trigger.
+    // But for this demo, fetching and updating is acceptable or just incrementing.
+    // Supabase doesn't have a direct 'increment' atomic operator in JS client without RPC.
+    // We will read, increment, write for simplicity, or just let the UI handle the count optimistically 
+    // and the DB count be updated on next fetch if we had a count trigger.
+    // Let's just update the count manually.
+    const { data: post } = await supabase.from('forum').select('comments').eq('id', postId).single();
+    if (post) {
+      await supabase.from('forum').update({ comments: (post.comments || 0) + 1 }).eq('id', postId);
+    }
+  },
+
+  getCommentsByPostId: async (postId: string): Promise<any[]> => {
+    if (!supabaseUrl) return [];
+    const { data } = await supabase
+      .from('forum_comments')
+      .select('*')
+      .eq('post_id', postId)
+      .order('timestamp', { ascending: true });
+
+    return (data || []).map(item => ({
+      id: item.id,
+      author: item.author,
+      content: item.content,
+      timestamp: item.timestamp,
+      likes: item.likes
+    }));
+  },
+
+  // Following Methods
+  followUser: async (followedName: string) => {
+    if (!supabaseUrl) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    await supabase.from('user_follows').insert({
+      follower_id: user.id,
+      followed_name: followedName
+    });
+  },
+
+  unfollowUser: async (followedName: string) => {
+    if (!supabaseUrl) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    await supabase.from('user_follows').delete()
+      .eq('follower_id', user.id)
+      .eq('followed_name', followedName);
+  },
+
+  getFollowedNames: async (): Promise<string[]> => {
+    if (!supabaseUrl) return [];
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const { data } = await supabase.from('user_follows')
+      .select('followed_name')
+      .eq('follower_id', user.id);
+
+    return (data || []).map(d => d.followed_name);
+  },
+
+  getFollowedPosts: async (): Promise<ForumPost[]> => {
+    if (!supabaseUrl) return [];
+    const followedNames = await ForumDatabase.getFollowedNames();
+    if (followedNames.length === 0) return [];
+
+    // 1. Get posts authored by followed users
+    const { data: postsData } = await supabase.from('forum')
+      .select('*')
+      .in('author', followedNames)
+      .order('timestamp', { ascending: false })
+      .limit(50);
+
+    // 2. Get posts commented on by followed users
+    // First get the comments
+    const { data: commentsData } = await supabase.from('forum_comments')
+      .select('post_id')
+      .in('author', followedNames)
+      .order('timestamp', { ascending: false })
+      .limit(50);
+
+    const commentedPostIds = [...new Set((commentsData || []).map(c => c.post_id))];
+
+    let commentedPosts: any[] = [];
+    if (commentedPostIds.length > 0) {
+      const { data } = await supabase.from('forum')
+        .select('*')
+        .in('id', commentedPostIds);
+      commentedPosts = data || [];
+    }
+
+    // Merge and Deduplicate
+    const allPosts = [...(postsData || []), ...commentedPosts];
+    const uniquePosts = Array.from(new Map(allPosts.map(item => [item.id, item])).values());
+
+    // Sort by timestamp descending
+    uniquePosts.sort((a, b) => b.timestamp - a.timestamp);
+
+    return uniquePosts.map(item => ({
+      id: item.id,
+      title: item.title,
+      content: item.content,
+      author: item.author,
+      likes: item.likes,
+      comments: item.comments,
+      timestamp: item.timestamp,
+      isAiGenerated: item.is_ai_generated,
+      tags: item.tags || []
+    }));
   }
 };
 

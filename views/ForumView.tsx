@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { ForumPost, Comment } from '../types';
 import { ForumDatabase, ForumCrawler } from '../services/geminiService';
-import { MessageCircle, Heart, Clock, Zap, Hash, Flame, HelpCircle, ChevronDown, ChevronUp, Plus, Send } from 'lucide-react';
+import { MessageCircle, Heart, Clock, Zap, Hash, Flame, HelpCircle, ChevronDown, ChevronUp, Plus, Send, UserPlus, UserMinus, Users } from 'lucide-react';
 
 import { ViewState } from '../types';
 import { supabase } from '../services/supabaseClient';
@@ -14,8 +14,9 @@ interface ForumViewProps {
 
 const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
   const [posts, setPosts] = useState<ForumPost[]>([]);
-  const [activeTab, setActiveTab] = useState<'trending' | 'latest'>('trending');
+  const [activeTab, setActiveTab] = useState<'following' | 'trending' | 'latest'>('trending');
   const [loading, setLoading] = useState(true);
+  const [followedNames, setFollowedNames] = useState<string[]>([]);
   const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -31,6 +32,10 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user);
+      if (data.user) {
+        setActiveTab('following'); // Default to following if logged in
+        ForumDatabase.getFollowedNames().then(setFollowedNames);
+      }
     });
   }, []);
 
@@ -38,7 +43,18 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      const data = await ForumDatabase.getPosts();
+      let data: ForumPost[] = [];
+
+      if (activeTab === 'following') {
+        if (user) {
+          data = await ForumDatabase.getFollowedPosts();
+        } else {
+          data = []; // Or redirect to login? For now just empty.
+        }
+      } else {
+        data = await ForumDatabase.getPosts();
+      }
+
       setPosts(data);
       setLoading(false);
     };
@@ -51,7 +67,7 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
     const handleUpdate = () => loadData();
     window.addEventListener('FORUM_DB_UPDATED', handleUpdate);
     return () => window.removeEventListener('FORUM_DB_UPDATED', handleUpdate);
-  }, []);
+  }, [activeTab, user]); // Reload when tab changes
 
   const toggleExpand = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -111,6 +127,25 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
     // In real app, call API here
   };
 
+  const handleFollow = async (authorName: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user) {
+      if (onNavigate) onNavigate(ViewState.LOGIN);
+      return;
+    }
+    // Optimistic
+    setFollowedNames([...followedNames, authorName]);
+    await ForumDatabase.followUser(authorName);
+  };
+
+  const handleUnfollow = async (authorName: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user) return;
+    // Optimistic
+    setFollowedNames(followedNames.filter(n => n !== authorName));
+    await ForumDatabase.unfollowUser(authorName);
+  };
+
   const handleCommentClick = (post: ForumPost, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!user) {
@@ -121,8 +156,12 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
         setExpandedCommentPostId(null);
       } else {
         setExpandedCommentPostId(post.id);
-        // If no comments list yet, we could fetch it here. 
-        // For now we assume commentsList might be empty or undefined.
+        // Fetch comments
+        ForumDatabase.getCommentsByPostId(post.id).then(comments => {
+          setPosts(prevPosts => prevPosts.map(p =>
+            p.id === post.id ? { ...p, commentsList: comments } : p
+          ));
+        });
       }
     }
   };
@@ -158,7 +197,9 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
       });
 
       setPosts(updatedPosts);
-      // In real app: await ForumDatabase.addComment(postId, newComment);
+
+      // Persist to Backend
+      await ForumDatabase.addComment(postId, newComment);
 
       setNewCommentContent('');
     } catch (err) {
@@ -169,9 +210,11 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
     }
   };
 
-  const filteredPosts = activeTab === 'trending'
-    ? [...posts].sort((a, b) => b.likes - a.likes)
-    : [...posts].sort((a, b) => b.timestamp - a.timestamp);
+  const filteredPosts = activeTab === 'following'
+    ? posts // Already fetched correctly in loadData
+    : activeTab === 'trending'
+      ? [...posts].sort((a, b) => b.likes - a.likes)
+      : [...posts].sort((a, b) => b.timestamp - a.timestamp);
 
   return (
     <div className="bg-gray-50 min-h-full pb-6">
@@ -199,6 +242,12 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
           </div>
 
           <div className="flex space-x-8 text-lg font-extrabold border-b border-gray-100">
+            <button
+              onClick={() => setActiveTab('following')}
+              className={`flex items-center pb-3 px-1 transition-colors ${activeTab === 'following' ? 'text-indigo-600 border-b-4 border-indigo-600' : 'text-gray-400'}`}
+            >
+              <Users size={20} className="mr-2" strokeWidth={2.5} /> 关注
+            </button>
             <button
               onClick={() => setActiveTab('trending')}
               className={`flex items-center pb-3 px-1 transition-colors ${activeTab === 'trending' ? 'text-indigo-600 border-b-4 border-indigo-600' : 'text-gray-400'}`}
@@ -246,6 +295,27 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
                     <Clock size={14} className="mr-1" />
                     {Math.floor((Date.now() - post.timestamp) / 60000)}分钟前
                   </span>
+
+                  {/* Follow Button */}
+                  {user && post.author !== (user.email?.split('@')[0]) && (
+                    <button
+                      onClick={(e) => followedNames.includes(post.author) ? handleUnfollow(post.author, e) : handleFollow(post.author, e)}
+                      className={`ml-auto text-xs font-bold px-3 py-1.5 rounded-full flex items-center transition-colors ${followedNames.includes(post.author)
+                        ? 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                        : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
+                        }`}
+                    >
+                      {followedNames.includes(post.author) ? (
+                        <>
+                          <UserMinus size={14} className="mr-1" /> 已关注
+                        </>
+                      ) : (
+                        <>
+                          <UserPlus size={14} className="mr-1" /> 关注
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
 
                 <h3 className="text-2xl md:text-3xl font-black text-gray-900 mb-4 leading-tight tracking-tight">{post.title}</h3>
