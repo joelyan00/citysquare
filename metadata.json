@@ -1,0 +1,9 @@
+{
+  "name": "City Square - 城市广场",
+  "description": "一个移动端优先的综合应用，包含AI精选新闻、AI生成的社区讨论以及本地服务市场。",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}
