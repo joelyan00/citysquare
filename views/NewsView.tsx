@@ -302,7 +302,8 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
 
       // Inject Ad every 4 items (starting after item 3)
       if ((index + 1) % 4 === 0 && ads.length > 0) {
-        const ad = ads[(index / 4) % ads.length];
+        const adIndex = Math.floor((index + 1) / 4) - 1;
+        const ad = ads[adIndex % ads.length];
         mixedList.push(
           <div key={`ad-${index}`} className="bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-100 rounded-[2rem] p-6 mb-8 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 bg-yellow-400 text-yellow-900 text-xs font-black px-3 py-1 rounded-bl-xl">Sponsored 广告</div>
