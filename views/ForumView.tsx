@@ -33,6 +33,7 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
   // New Feature States
   const [newPostImages, setNewPostImages] = useState<string[]>([]);
   const [newPostVideo, setNewPostVideo] = useState('');
+  const [showVideoInput, setShowVideoInput] = useState(false);
   const [isPolishing, setIsPolishing] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
 
@@ -150,6 +151,16 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
 
     setIsSubmitting(true);
     try {
+      // Auto-extract video URL if not set
+      let finalVideoUrl = newPostVideo;
+      if (!finalVideoUrl) {
+        const urlRegex = /(https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|bilibili\.com\/video\/)[^\s]+)/g;
+        const match = newPostContent.match(urlRegex);
+        if (match) {
+          finalVideoUrl = match[0];
+        }
+      }
+
       const newPost: ForumPost = {
         id: `user-post-${Date.now()}`,
         title: newPostTitle,
@@ -161,7 +172,7 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
         isAiGenerated: false,
         tags: ['用户发布'],
         images: newPostImages,
-        videoUrl: newPostVideo
+        videoUrl: finalVideoUrl
       };
 
       await ForumDatabase.save(newPost);
@@ -508,106 +519,118 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
       {
         showCreateModal && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-[fadeIn_0.2s]" onClick={() => setShowCreateModal(false)}>
-            <div className="bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
-              <h3 className="text-2xl font-black text-gray-900 mb-4">发布新话题</h3>
+            <div className="bg-white w-full max-w-2xl rounded-xl p-8 shadow-2xl" onClick={e => e.stopPropagation()}>
+
+              {/* Header */}
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-medium text-emerald-800 flex items-center">
+                  <span className="mr-2"><Plus size={20} /></span> 发表新话题
+                </h3>
+                <button onClick={() => setShowCreateModal(false)} className="text-gray-400 hover:text-gray-600">
+                  <X size={24} />
+                </button>
+              </div>
+
               <form onSubmit={handleSubmitPost} className="space-y-4">
-                <div>
+                {/* Title Input */}
+                <div className="border border-gray-300 rounded-md px-3 py-2 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all">
                   <input
                     type="text"
-                    placeholder="标题 (必填)"
+                    placeholder="标题：今日有何高见？"
                     value={newPostTitle}
                     onChange={e => setNewPostTitle(e.target.value)}
-                    className="w-full text-lg font-bold border-b-2 border-gray-100 focus:border-indigo-500 outline-none py-2"
+                    className="w-full text-lg outline-none text-gray-700 placeholder-gray-300"
                     autoFocus
                   />
                 </div>
-                <div className="mb-4">
-                  <textarea
-                    placeholder="分享你的想法..."
-                    value={newPostContent}
-                    onChange={(e) => setNewPostContent(e.target.value)}
-                    className="w-full h-32 bg-gray-50 border border-gray-100 rounded-xl p-4 font-bold text-gray-800 focus:ring-2 focus:ring-brand-500 outline-none resize-none"
-                  />
 
-                  {/* Toolbar */}
-                  <div className="flex items-center gap-2 mt-2">
-                    {/* Image Upload */}
-                    <label className="cursor-pointer p-2 hover:bg-gray-100 rounded-full text-gray-500 hover:text-brand-600 transition-colors">
+                {/* Content Input */}
+                <div className="border border-gray-200 rounded-md p-3 h-64 focus-within:border-blue-500 transition-all bg-gray-50/50">
+                  <textarea
+                    placeholder="展开叙述..."
+                    value={newPostContent}
+                    onChange={e => setNewPostContent(e.target.value)}
+                    className="w-full h-full bg-transparent outline-none text-gray-600 resize-none placeholder-gray-300 text-base leading-relaxed"
+                  />
+                </div>
+
+                {/* Tip */}
+                <div className="flex items-center text-xs text-gray-700 font-medium">
+                  <span className="bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded mr-2 font-bold">TIP</span>
+                  支持粘贴 YouTube 视频链接，发布后将自动显示为播放器。
+                </div>
+
+                {/* Media Previews (Images only, since video is auto-detected) */}
+                {newPostImages.length > 0 && (
+                  <div className="flex gap-2 mt-2 overflow-x-auto pb-2">
+                    {newPostImages.map((img, idx) => (
+                      <div key={idx} className="relative flex-shrink-0">
+                        <img src={img} alt="Preview" className="w-20 h-20 object-cover rounded-lg border border-gray-200" />
+                        <button
+                          type="button"
+                          onClick={() => setNewPostImages(prev => prev.filter((_, i) => i !== idx))}
+                          className="absolute -top-1 -right-1 bg-black/50 text-white rounded-full p-0.5"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Footer Toolbar */}
+                <div className="flex items-center justify-between pt-4 mt-2">
+
+                  {/* Left: Category & Image */}
+                  <div className="flex items-center space-x-4">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <span className="mr-2">发布至:</span>
+                      <div className="relative">
+                        <select className="appearance-none bg-white border border-gray-300 text-gray-700 py-1 pl-3 pr-8 rounded leading-tight focus:outline-none focus:border-gray-500">
+                          <option>国际时事</option>
+                          <option>社会热点</option>
+                          <option>生活杂谈</option>
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                          <ChevronDown size={14} />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Image Upload Trigger */}
+                    <label className="cursor-pointer text-gray-400 hover:text-gray-600 transition-colors" title="上传图片">
                       <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageUpload} />
                       <Image size={20} />
                     </label>
-
-                    {/* Video URL Trigger (Simple prompt for now) */}
-                    <button
-                      onClick={() => {
-                        const url = prompt("请输入视频链接 (YouTube/Bilibili):");
-                        if (url) setNewPostVideo(url);
-                      }}
-                      className={`p-2 hover:bg-gray-100 rounded-full transition-colors ${newPostVideo ? 'text-brand-600' : 'text-gray-500'}`}
-                    >
-                      <Video size={20} />
-                    </button>
-
-                    {/* Voice Input */}
-                    <button
-                      onClick={handleVoiceInput}
-                      className={`p-2 hover:bg-gray-100 rounded-full transition-colors ${isRecording ? 'text-red-500 animate-pulse' : 'text-gray-500'}`}
-                    >
-                      <Mic size={20} />
-                    </button>
-
-                    <div className="flex-1"></div>
-
-                    {/* AI Polish */}
-                    <button
-                      onClick={handleAiPolish}
-                      disabled={isPolishing || !newPostContent}
-                      className="flex items-center gap-1 text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg hover:bg-indigo-100 disabled:opacity-50"
-                    >
-                      <Wand2 size={14} />
-                      {isPolishing ? '润色中...' : 'AI 润色'}
-                    </button>
                   </div>
 
-                  {/* Media Previews */}
-                  {newPostImages.length > 0 && (
-                    <div className="flex gap-2 mt-3 overflow-x-auto pb-2">
-                      {newPostImages.map((img, idx) => (
-                        <div key={idx} className="relative flex-shrink-0">
-                          <img src={img} alt="Preview" className="w-20 h-20 object-cover rounded-lg border border-gray-200" />
-                          <button
-                            onClick={() => setNewPostImages(prev => prev.filter((_, i) => i !== idx))}
-                            className="absolute -top-1 -right-1 bg-black/50 text-white rounded-full p-0.5"
-                          >
-                            <X size={12} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  {/* Right: Actions */}
+                  <div className="flex items-center space-x-3">
+                    <button
+                      type="button"
+                      onClick={handleVoiceInput}
+                      className={`flex items-center px-4 py-2 rounded border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm font-medium transition-colors ${isRecording ? 'text-red-500 border-red-200 bg-red-50' : ''}`}
+                    >
+                      <Mic size={16} className="mr-1.5" /> 语音输入
+                    </button>
 
-                  {newPostVideo && (
-                    <div className="mt-2 text-xs text-brand-600 flex items-center bg-brand-50 p-2 rounded-lg">
-                      <Video size={14} className="mr-1" /> 已添加视频链接
-                      <button onClick={() => setNewPostVideo('')} className="ml-auto text-gray-400 hover:text-red-500"><X size={14} /></button>
-                    </div>
-                  )}
-                </div>
-                <div className="flex justify-end space-x-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowCreateModal(false)}
-                    className="px-5 py-2.5 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition-colors"
-                  >
-                    取消
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting || !newPostTitle.trim() || !newPostContent.trim()}
-                    className="px-6 py-2.5 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-500/30 disabled:opacity-50 flex items-center"
-                  >
-                    {isSubmitting ? '发布中...' : <><Send size={18} className="mr-2" /> 发布</>}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={handleAiPolish}
+                      disabled={isPolishing || !newPostContent}
+                      className="flex items-center px-4 py-2 rounded bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-sm font-medium transition-colors disabled:opacity-50"
+                    >
+                      <Wand2 size={16} className="mr-1.5" /> AI 润色
+                    </button>
+
+                    <button
+                      type="submit"
+                      disabled={isSubmitting || !newPostTitle.trim() || !newPostContent.trim()}
+                      className="px-6 py-2 rounded bg-emerald-600 text-white hover:bg-emerald-700 text-sm font-medium shadow-sm transition-colors disabled:opacity-50 disabled:bg-gray-300"
+                    >
+                      发布
+                    </button>
+                  </div>
                 </div>
               </form>
             </div>
