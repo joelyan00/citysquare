@@ -41,7 +41,7 @@ const cleanJsonString = (str: string) => {
   const firstBracket = cleaned.indexOf('[');
   const lastBracket = cleaned.lastIndexOf(']');
   if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
-      cleaned = cleaned.substring(firstBracket, lastBracket + 1);
+    cleaned = cleaned.substring(firstBracket, lastBracket + 1);
   }
   return cleaned;
 };
@@ -49,11 +49,11 @@ const cleanJsonString = (str: string) => {
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const isValidUrl = (urlString: string) => {
-  try { 
-    return Boolean(new URL(urlString)); 
+  try {
+    return Boolean(new URL(urlString));
   }
-  catch(e){ 
-    return false; 
+  catch (e) {
+    return false;
   }
 };
 
@@ -101,7 +101,7 @@ export const getCityNameFromCoordinates = async (lat: number, lon: number): Prom
         }
       }
     });
-    
+
     const data = JSON.parse(response.text || "{}");
     return data.city || "本地";
   } catch (error) {
@@ -113,43 +113,46 @@ export const getCityNameFromCoordinates = async (lat: number, lon: number): Prom
 export const uploadImageToSupabase = async (base64Data: string, filename: string): Promise<string | null> => {
   try {
     if (!supabaseUrl || supabaseUrl.includes('placeholder')) return null;
-    
+
     // Use manual conversion instead of fetch
     const blob = base64ToBlob(base64Data);
 
-    const { data, error } = await supabase.storage.from('urbanhub_assets').upload(filename, blob, { 
-        contentType: blob.type, 
-        upsert: true 
+    const { data, error } = await supabase.storage.from('urbanhub_assets').upload(filename, blob, {
+      contentType: blob.type,
+      upsert: true
     });
 
-    if (error) { 
-        console.error("Storage Upload Error:", error); 
-        return null; 
+    if (error) {
+      console.error("Storage Upload Error:", error);
+      return null;
     }
-    
+
     const { data: { publicUrl } } = supabase.storage.from('urbanhub_assets').getPublicUrl(filename);
     return publicUrl;
-  } catch (e) { 
-    console.error("Image Process/Upload Exception:", e); 
-    return null; 
+  } catch (e) {
+    console.error("Image Process/Upload Exception:", e);
+    return null;
   }
 };
 
-const generateNewsImage = async (headline: string, category: NewsCategory): Promise<string | undefined> => {
+const generateNewsImage = async (headline: string, category: string): Promise<string | undefined> => {
   if (!apiKey) return undefined;
-  
+
   let visualContext = "";
-  if ([NewsCategory.USA, NewsCategory.CANADA, NewsCategory.INTERNATIONAL].includes(category)) {
-      visualContext = "Setting is Western/International. Any visible text, street signs, or banners in the image MUST be in ENGLISH or the local language. STRICTLY NO CHINESE CHARACTERS in the image.";
+  if ([NewsCategory.USA, NewsCategory.CANADA, NewsCategory.INTERNATIONAL].includes(category as any)) {
+    visualContext = "Setting is Western/International. Any visible text, street signs, or banners in the image MUST be in ENGLISH or the local language. STRICTLY NO CHINESE CHARACTERS in the image.";
   } else if (category === NewsCategory.CHINA) {
-      visualContext = "Setting is China. Visuals should reflect authentic Chinese street/environment.";
+    visualContext = "Setting is China. Visuals should reflect authentic Chinese street/environment.";
   }
 
   try {
-    const response = await generateWithRetry('gemini-2.5-flash-image', {
-      contents: { parts: [{ text: `Create a highly realistic, editorial-style news photography for the headline: "${headline}". 
+    const response = await generateWithRetry('imagen-3.0-generate-001', {
+      contents: {
+        parts: [{
+          text: `Create a highly realistic, editorial-style news photography for the headline: "${headline}". 
       ${visualContext}
-      The image should capture the essence of the event. NO COLLAGE. Photorealistic style.` }] },
+      The image should capture the essence of the event. NO COLLAGE. Photorealistic style.` }]
+      },
     });
 
     for (const part of response.candidates?.[0]?.content?.parts || []) {
@@ -163,7 +166,7 @@ const generateNewsImage = async (headline: string, category: NewsCategory): Prom
   return undefined;
 };
 
-export const fetchNewsFromAI = async (category: NewsCategory, context?: string): Promise<NewsItem[]> => {
+export const fetchNewsFromAI = async (category: string, context?: string): Promise<NewsItem[]> => {
   if (!apiKey) {
     console.warn("No API Key");
     return [];
@@ -171,33 +174,43 @@ export const fetchNewsFromAI = async (category: NewsCategory, context?: string):
 
   const config = await ConfigService.get();
 
-  let topic = category as string;
+  let topic = category;
   let articleCount = config.news.globalArticleCount || 8;
   let timeWindow = config.news.globalTimeWindow || "24 hours";
   let keywords = config.news.extraKeywords || "";
 
+  // Check if it's a known static category
   if (category === NewsCategory.LOCAL) {
     topic = context && context !== '本地' ? context : '您所在的城市';
     articleCount = config.news.localArticleCount || 15;
     timeWindow = config.news.localTimeWindow || "48 hours";
   } else if (category === NewsCategory.CANADA) {
-     topic = 'Canada';
-     articleCount = config.news.canadaArticleCount || 10;
-     timeWindow = config.news.canadaTimeWindow || "24 hours";
-     if (config.news.canadaKeywords) keywords = config.news.canadaKeywords;
+    topic = 'Canada';
+    articleCount = config.news.canadaArticleCount || 10;
+    timeWindow = config.news.canadaTimeWindow || "24 hours";
+    if (config.news.canadaKeywords) keywords = config.news.canadaKeywords;
   } else if (category === NewsCategory.USA) {
-     topic = 'United States';
-     articleCount = config.news.usaArticleCount || 10;
-     timeWindow = config.news.usaTimeWindow || "24 hours";
-     if (config.news.usaKeywords) keywords = config.news.usaKeywords;
+    topic = 'United States';
+    articleCount = config.news.usaArticleCount || 10;
+    timeWindow = config.news.usaTimeWindow || "24 hours";
+    if (config.news.usaKeywords) keywords = config.news.usaKeywords;
   } else if (category === NewsCategory.CHINA) {
-     topic = 'China';
-     articleCount = config.news.chinaArticleCount || 10;
-     timeWindow = config.news.chinaTimeWindow || "24 hours";
+    topic = 'China';
+    articleCount = config.news.chinaArticleCount || 10;
+    timeWindow = config.news.chinaTimeWindow || "24 hours";
   } else if (category === NewsCategory.INTERNATIONAL) {
-     topic = 'Global International News';
-     articleCount = config.news.intlArticleCount || 8;
-     timeWindow = config.news.intlTimeWindow || "48 hours";
+    topic = 'Global International News';
+    articleCount = config.news.intlArticleCount || 8;
+    timeWindow = config.news.intlTimeWindow || "48 hours";
+  } else {
+    // Check Custom Categories
+    const customCat = config.news.customCategories?.find(c => c.id === category);
+    if (customCat) {
+      topic = customCat.topic;
+      articleCount = customCat.articleCount || 10;
+      timeWindow = customCat.timeWindow || "24 hours";
+      if (customCat.keywords) keywords = `${keywords}, ${customCat.keywords}`;
+    }
   }
 
   const systemInstruction = `You are a professional journalist for "CitySquare".
@@ -207,6 +220,12 @@ export const fetchNewsFromAI = async (category: NewsCategory, context?: string):
   Keywords to focus on: ${keywords}.
   
   For LOCAL news, you MUST search for "Official City Hall Announcements" for ${topic} and include them.
+  
+  CRITICAL FOR LOCAL NEWS:
+  - The news MUST be specifically about "${topic}".
+  - Do NOT include general national news (e.g. Federal Customs, National Holidays) unless it specifically mentions "${topic}".
+  - Do NOT include international news.
+  - If you cannot find enough specific local news, return fewer items. Quality > Quantity.
 
   Step 1: SEARCH for trending news URLs first.
   Step 2: SELECT unique, diverse stories (Sports, Politics, Tech, Heartwarming, Official Notices).
@@ -224,11 +243,16 @@ export const fetchNewsFromAI = async (category: NewsCategory, context?: string):
   - "source_url" MUST be a direct deep link to the specific news article found in search, NOT a home page.
   
   Output JSON Array:
-  [{ "title": "", "summary": "", "content": "", "source_name": "", "source_url": "", "image_url": "URL of the actual news image if found", "youtube_url": "" }]`;
+  [{ "title": "", "summary": "", "content": "", "source_name": "", "source_url": "", "image_url": "URL of the actual news image if found", "youtube_url": "" }]
+  
+  CRITICAL INSTRUCTIONS FOR MEDIA:
+  1. IMAGES: You MUST try to extract the actual lead image URL from the search result. If found, put it in "image_url". Do NOT invent URLs. If no image is found, leave it empty.
+  2. YOUTUBE: If the news is related to a video or has a YouTube video, find the YouTube link and put it in "youtube_url".
+  3. DUPLICATES: Do not generate multiple items for the exact same story.`;
 
   try {
     const searchContext = `Search for trending news about "${topic}" in the last ${timeWindow}. Focus on: ${keywords}. Return ${articleCount} items.`;
-    
+
     const response = await generateWithRetry("gemini-2.5-flash", {
       contents: searchContext,
       config: {
@@ -239,7 +263,7 @@ export const fetchNewsFromAI = async (category: NewsCategory, context?: string):
 
     const jsonStr = cleanJsonString(response.text || "[]");
     let items: any[] = [];
-    
+
     try {
       items = JSON.parse(jsonStr);
     } catch (e) {
@@ -252,41 +276,42 @@ export const fetchNewsFromAI = async (category: NewsCategory, context?: string):
     const finalItems: NewsItem[] = [];
 
     for (const [index, item] of items.entries()) {
-        // Image generation logic
-        let imageUrl = item.image_url && isValidUrl(item.image_url) ? item.image_url : undefined;
-        
-        if (!imageUrl) {
-            // Generate AI Image if real one is missing
-            // Throttle: wait 4s to avoid rate limit
-            if (index > 0) await delay(4000); 
-            try {
-                const aiImageBase64 = await generateNewsImage(item.title, category);
-                if (aiImageBase64) {
-                     // Upload to Storage
-                     const uploadedUrl = await uploadImageToSupabase(aiImageBase64, `news/${category}_${Date.now()}_${index}.png`);
-                     imageUrl = uploadedUrl || `https://picsum.photos/seed/${item.title}/600/400`;
-                }
-            } catch (imgError) {
-                imageUrl = `https://picsum.photos/seed/${item.title}/600/400`;
-            }
-        }
-        
-        // Clean URL
-        let sourceUrl = isValidUrl(item.source_url) ? item.source_url : undefined;
-        if (sourceUrl) sourceUrl = sourceUrl.trim();
+      // Image generation logic
+      let imageUrl = item.image_url && isValidUrl(item.image_url) ? item.image_url : undefined;
 
-        finalItems.push({
-            id: `news-${category}-${Date.now()}-${index}`,
-            title: item.title,
-            summary: item.summary,
-            content: item.content,
-            category,
-            timestamp: Date.now(),
-            imageUrl: imageUrl || `https://picsum.photos/seed/${index}/600/400`,
-            source: `CitySquare 整理自 ${item.source_name || '互联网'}`,
-            sourceUrl: sourceUrl,
-            youtubeUrl: item.youtube_url
-        });
+      if (!imageUrl) {
+        // Generate AI Image if real one is missing
+        // Throttle: wait 4s to avoid rate limit
+        if (index > 0) await delay(4000);
+        try {
+          // Cast category to NewsCategory for generateNewsImage as it expects that enum
+          const aiImageBase64 = await generateNewsImage(item.title, category as NewsCategory);
+          if (aiImageBase64) {
+            // Upload to Storage
+            const uploadedUrl = await uploadImageToSupabase(aiImageBase64, `news/${category}_${Date.now()}_${index}.png`);
+            imageUrl = uploadedUrl || `https://picsum.photos/seed/${item.title}/600/400`;
+          }
+        } catch (imgError) {
+          imageUrl = `https://picsum.photos/seed/${item.title}/600/400`;
+        }
+      }
+
+      // Clean URL
+      let sourceUrl = isValidUrl(item.source_url) ? item.source_url : undefined;
+      if (sourceUrl) sourceUrl = sourceUrl.trim();
+
+      finalItems.push({
+        id: `news-${category}-${Date.now()}-${index}`,
+        title: item.title,
+        summary: item.summary,
+        content: item.content,
+        category,
+        timestamp: Date.now(),
+        imageUrl: imageUrl || `https://picsum.photos/seed/${index}/600/400`,
+        source: `CitySquare 整理自 ${item.source_name || '互联网'}`,
+        sourceUrl: sourceUrl,
+        youtubeUrl: item.youtube_url
+      });
     }
 
     return finalItems;
@@ -298,18 +323,25 @@ export const fetchNewsFromAI = async (category: NewsCategory, context?: string):
 };
 
 export const NewsDatabase = {
-  getByCategory: async (category: NewsCategory): Promise<NewsItem[]> => {
+  getByCategory: async (category: string): Promise<NewsItem[]> => {
     if (!supabaseUrl) return [];
-    
+
     // Get Limit from Config
     const config = await ConfigService.get();
     let limit = 50;
-    switch(category) {
+
+    if (Object.values(NewsCategory).includes(category as NewsCategory)) {
+      switch (category) {
         case NewsCategory.LOCAL: limit = config.news.localRetentionLimit || 50; break;
         case NewsCategory.CANADA: limit = config.news.canadaRetentionLimit || 50; break;
         case NewsCategory.USA: limit = config.news.usaRetentionLimit || 50; break;
         case NewsCategory.CHINA: limit = config.news.chinaRetentionLimit || 50; break;
         case NewsCategory.INTERNATIONAL: limit = config.news.intlRetentionLimit || 50; break;
+      }
+    } else {
+      // Custom Category Limit
+      const customCat = config.news.customCategories?.find(c => c.id === category);
+      if (customCat) limit = customCat.retentionLimit || 50;
     }
 
     const { data, error } = await supabase
@@ -320,8 +352,8 @@ export const NewsDatabase = {
       .limit(limit);
 
     if (error) {
-        console.error("Supabase Read Error", error);
-        return [];
+      console.error("Supabase Read Error", error);
+      return [];
     }
     return (data || []).map(fromDbSchema);
   },
@@ -329,56 +361,82 @@ export const NewsDatabase = {
   save: async (newItems: NewsItem[]) => {
     if (!supabaseUrl || newItems.length === 0) return;
 
-    const dbItems = newItems.map(toDbSchema);
-    
+    // 1. Deduplication: Fetch recent titles
+    const category = newItems[0].category;
+    const { data: existingPosts } = await supabase
+      .from('news')
+      .select('title')
+      .eq('category', category)
+      .order('timestamp', { ascending: false })
+      .limit(100);
+
+    const existingTitles = new Set((existingPosts || []).map(p => p.title));
+
+    // 2. Filter out duplicates (Exact Title Match)
+    const uniqueItems = newItems.filter(item => !existingTitles.has(item.title));
+
+    if (uniqueItems.length === 0) {
+      console.log(`[NewsDatabase] All ${newItems.length} items were duplicates. Skipping.`);
+      return;
+    }
+
+    console.log(`[NewsDatabase] Saving ${uniqueItems.length} new items (filtered from ${newItems.length})`);
+
+    const dbItems = uniqueItems.map(toDbSchema);
+
     // Upsert items
     const { error } = await supabase.from('news').upsert(dbItems);
-    
+
     if (error) {
-        console.error("Supabase Save Error:", JSON.stringify(error, null, 2));
+      console.error("Supabase Save Error:", JSON.stringify(error, null, 2));
     } else {
-         // Retention Logic: Delete items exceeding the limit
-         const category = newItems[0].category;
-         await NewsDatabase.enforceRetention(category);
+      // Retention Logic: Delete items exceeding the limit
+      await NewsDatabase.enforceRetention(category);
     }
   },
-  
-  enforceRetention: async (category: NewsCategory) => {
-     const config = await ConfigService.get();
-     let limit = 50;
-     switch(category) {
+
+  enforceRetention: async (category: string) => {
+    const config = await ConfigService.get();
+    let limit = 50;
+
+    if (Object.values(NewsCategory).includes(category as NewsCategory)) {
+      switch (category) {
         case NewsCategory.LOCAL: limit = config.news.localRetentionLimit || 50; break;
         case NewsCategory.CANADA: limit = config.news.canadaRetentionLimit || 50; break;
         case NewsCategory.USA: limit = config.news.usaRetentionLimit || 50; break;
         case NewsCategory.CHINA: limit = config.news.chinaRetentionLimit || 50; break;
         case NewsCategory.INTERNATIONAL: limit = config.news.intlRetentionLimit || 50; break;
-     }
+      }
+    } else {
+      const customCat = config.news.customCategories?.find(c => c.id === category);
+      if (customCat) limit = customCat.retentionLimit || 50;
+    }
 
-     // Get IDs of latest N items
-     const { data: keepIds } = await supabase
-        .from('news')
-        .select('id')
-        .eq('category', category)
-        .order('timestamp', { ascending: false })
-        .limit(limit);
-     
-     if (keepIds && keepIds.length > 0) {
-         const idsToKeep = keepIds.map(k => k.id);
-         // Delete items NOT in the keep list
-         await supabase.from('news').delete().eq('category', category).not('id', 'in', `(${idsToKeep.join(',')})`);
-     }
+    // Get IDs of latest N items
+    const { data: keepIds } = await supabase
+      .from('news')
+      .select('id')
+      .eq('category', category)
+      .order('timestamp', { ascending: false })
+      .limit(limit);
+
+    if (keepIds && keepIds.length > 0) {
+      const idsToKeep = keepIds.map(k => k.id);
+      // Delete items NOT in the keep list
+      await supabase.from('news').delete().eq('category', category).not('id', 'in', `(${idsToKeep.join(',')})`);
+    }
   },
 
-  getLastUpdateTime: async (category: NewsCategory): Promise<number> => {
-     if (!supabaseUrl) return 0;
-     const { data } = await supabase
-        .from('news')
-        .select('timestamp')
-        .eq('category', category)
-        .order('timestamp', { ascending: false })
-        .limit(1)
-        .single();
-     return data?.timestamp || 0;
+  getLastUpdateTime: async (category: string): Promise<number> => {
+    if (!supabaseUrl) return 0;
+    const { data } = await supabase
+      .from('news')
+      .select('timestamp')
+      .eq('category', category)
+      .order('timestamp', { ascending: false })
+      .limit(1)
+      .single();
+    return data?.timestamp || 0;
   },
 
   clearAll: async () => {
@@ -392,29 +450,35 @@ export const NewsCrawler = {
     console.log("News Crawler initialized");
     // Background loop check every minute
     setInterval(() => {
-        // ... (Optional background check logic)
+      // ... (Optional background check logic)
     }, 60000);
   },
 
-  shouldUpdate: async (category: NewsCategory): Promise<boolean> => {
+  shouldUpdate: async (category: string): Promise<boolean> => {
     const lastUpdate = await NewsDatabase.getLastUpdateTime(category);
     const now = Date.now();
     const config = await ConfigService.get();
-    
+
     let intervalMinutes = 120; // Default 2 hours
-    switch(category) {
+
+    if (Object.values(NewsCategory).includes(category as NewsCategory)) {
+      switch (category) {
         case NewsCategory.LOCAL: intervalMinutes = config.news.localRefreshInterval || 720; break;
         case NewsCategory.CANADA: intervalMinutes = config.news.canadaRefreshInterval || 120; break;
         case NewsCategory.USA: intervalMinutes = config.news.usaRefreshInterval || 120; break;
         case NewsCategory.CHINA: intervalMinutes = config.news.chinaRefreshInterval || 720; break;
         case NewsCategory.INTERNATIONAL: intervalMinutes = config.news.intlRefreshInterval || 120; break;
+      }
+    } else {
+      const customCat = config.news.customCategories?.find(c => c.id === category);
+      if (customCat) intervalMinutes = customCat.refreshInterval || 120;
     }
-    
+
     const intervalMs = intervalMinutes * 60 * 1000;
     return (now - lastUpdate) > intervalMs;
   },
 
-  run: async (category: NewsCategory, context?: string) => {
+  run: async (category: string, context?: string) => {
     console.log(`Crawler running for ${category}...`);
     const news = await fetchNewsFromAI(category, context);
     if (news.length > 0) {
@@ -423,7 +487,7 @@ export const NewsCrawler = {
     }
   },
 
-  forceRefresh: async (category: NewsCategory, context?: string) => {
+  forceRefresh: async (category: string, context?: string) => {
     console.log(`Force refresh for ${category}`);
     await NewsCrawler.run(category, context);
   }
@@ -434,11 +498,11 @@ export const generateTrendingTopic = async (): Promise<ForumPost | null> => {
   if (!apiKey) return null;
 
   const config = await ConfigService.get();
-  
+
   // Parse lists
   const categories = config.forum.categories.split(',').map(s => s.trim());
   const qTypes = config.forum.questionTypes.split(',').map(s => s.trim());
-  
+
   // Random selection
   const selectedCat = categories[Math.floor(Math.random() * categories.length)] || "社会热点";
   const selectedType = qTypes[Math.floor(Math.random() * qTypes.length)] || "理性讨论";
@@ -495,34 +559,34 @@ export const ForumDatabase = {
     if (!supabaseUrl) return [];
     const { data } = await supabase.from('forum').select('*').order('timestamp', { ascending: false }).limit(50);
     return (data || []).map(item => ({
-       id: item.id,
-       title: item.title,
-       content: item.content,
-       author: item.author,
-       likes: item.likes,
-       comments: item.comments,
-       timestamp: item.timestamp,
-       isAiGenerated: item.is_ai_generated,
-       tags: item.tags || []
+      id: item.id,
+      title: item.title,
+      content: item.content,
+      author: item.author,
+      likes: item.likes,
+      comments: item.comments,
+      timestamp: item.timestamp,
+      isAiGenerated: item.is_ai_generated,
+      tags: item.tags || []
     }));
   },
   save: async (post: ForumPost) => {
     if (!supabaseUrl) return;
     await supabase.from('forum').upsert({
-       id: post.id,
-       title: post.title,
-       content: post.content,
-       author: post.author,
-       likes: post.likes,
-       comments: post.comments,
-       timestamp: post.timestamp,
-       is_ai_generated: post.isAiGenerated,
-       tags: post.tags
+      id: post.id,
+      title: post.title,
+      content: post.content,
+      author: post.author,
+      likes: post.likes,
+      comments: post.comments,
+      timestamp: post.timestamp,
+      is_ai_generated: post.isAiGenerated,
+      tags: post.tags
     });
   },
   getLastUpdateTime: async (): Promise<number> => {
-     const { data } = await supabase.from('forum').select('timestamp').order('timestamp', { ascending: false }).limit(1).single();
-     return data?.timestamp || 0;
+    const { data } = await supabase.from('forum').select('timestamp').order('timestamp', { ascending: false }).limit(1).single();
+    return data?.timestamp || 0;
   },
   clearAll: async () => {
     if (!supabaseUrl) return;
@@ -532,16 +596,16 @@ export const ForumDatabase = {
 
 export const ForumCrawler = {
   init: async () => {
-     setInterval(async () => {
-         const config = await ConfigService.get();
-         const lastUpdate = await ForumDatabase.getLastUpdateTime();
-         const interval = (config.forum.generateInterval || 60) * 60 * 1000;
-         if (Date.now() - lastUpdate > interval) {
-             console.log("Auto-generating forum topic...");
-             await generateTrendingTopic();
-             window.dispatchEvent(new Event('FORUM_DB_UPDATED'));
-         }
-     }, 60000);
+    setInterval(async () => {
+      const config = await ConfigService.get();
+      const lastUpdate = await ForumDatabase.getLastUpdateTime();
+      const interval = (config.forum.generateInterval || 60) * 60 * 1000;
+      if (Date.now() - lastUpdate > interval) {
+        console.log("Auto-generating forum topic...");
+        await generateTrendingTopic();
+        window.dispatchEvent(new Event('FORUM_DB_UPDATED'));
+      }
+    }, 60000);
   }
 };
 
@@ -550,17 +614,17 @@ export const AdDatabase = {
   saveAd: async (ad: AdItem) => {
     if (!supabaseUrl) return;
     await supabase.from('ads').insert({
-       title: ad.title,
-       content: ad.content,
-       raw_content: ad.rawContent,
-       image_url: ad.imageUrl,
-       contact_info: ad.contactInfo,
-       link_url: ad.linkUrl,
-       scope: ad.scope,
-       duration_days: ad.durationDays,
-       price_total: ad.priceTotal,
-       status: 'pending', // Default to pending
-       start_date: new Date().toISOString()
+      title: ad.title,
+      content: ad.content,
+      raw_content: ad.rawContent,
+      image_url: ad.imageUrl,
+      contact_info: ad.contactInfo,
+      link_url: ad.linkUrl,
+      scope: ad.scope,
+      duration_days: ad.durationDays,
+      price_total: ad.priceTotal,
+      status: 'pending', // Default to pending
+      start_date: new Date().toISOString()
     });
   },
   getActiveAds: async (): Promise<AdItem[]> => {
@@ -568,16 +632,16 @@ export const AdDatabase = {
     // For demo, we fetch all 'pending' or 'active' ads
     const { data } = await supabase.from('ads').select('*').order('created_at', { ascending: false });
     return (data || []).map(item => ({
-        id: item.id,
-        title: item.title,
-        content: item.content,
-        rawContent: item.raw_content,
-        imageUrl: item.image_url,
-        contactInfo: item.contact_info,
-        scope: item.scope,
-        durationDays: item.duration_days,
-        priceTotal: item.price_total,
-        status: item.status
+      id: item.id,
+      title: item.title,
+      content: item.content,
+      rawContent: item.raw_content,
+      imageUrl: item.image_url,
+      contactInfo: item.contact_info,
+      scope: item.scope,
+      durationDays: item.duration_days,
+      priceTotal: item.price_total,
+      status: item.status
     }));
   }
 };
@@ -586,11 +650,11 @@ export const generateAdCopy = async (rawText: string, productName: string) => {
   if (!apiKey) return { title: productName, content: rawText };
   try {
     const response = await generateWithRetry("gemini-2.5-flash", {
-       contents: `Refine this ad content for "${productName}". 
+      contents: `Refine this ad content for "${productName}". 
        Original: "${rawText}". 
        Goal: Make it catchy, professional, and persuasive.
        Output JSON: { "title": "Catchy Headline", "content": "Polished text" }`,
-       config: { responseMimeType: "application/json" }
+      config: { responseMimeType: "application/json" }
     });
     return JSON.parse(response.text || "{}");
   } catch (e) {

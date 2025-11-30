@@ -29,12 +29,20 @@ export interface NewsItem {
   title: string;
   summary: string;
   content: string; // Full content
-  category: NewsCategory;
+  category: string;
   timestamp: number;
   imageUrl: string;
   source: string;
   sourceUrl?: string;
   youtubeUrl?: string;
+}
+
+export interface Comment {
+  id: string;
+  author: string;
+  content: string;
+  timestamp: number;
+  likes: number;
 }
 
 export interface ForumPost {
@@ -44,6 +52,7 @@ export interface ForumPost {
   author: string;
   likes: number;
   comments: number;
+  commentsList?: Comment[];
   timestamp: number;
   isAiGenerated: boolean;
   tags: string[];
@@ -78,6 +87,17 @@ export interface UserProfile {
 }
 
 // Admin Config Types
+export interface CustomCategory {
+  id: string;
+  name: string; // Display Name (e.g. "Tech")
+  topic: string; // Search Topic (e.g. "Artificial Intelligence")
+  keywords: string;
+  articleCount: number;
+  timeWindow: string;
+  retentionLimit: number;
+  refreshInterval: number;
+}
+
 export interface NewsSettings {
   localArticleCount: number;
   globalArticleCount: number;
@@ -115,6 +135,8 @@ export interface NewsSettings {
   intlArticleCount?: number;
   intlTimeWindow?: string;
   intlKeywords?: string;
+
+  customCategories?: CustomCategory[];
 }
 
 export interface ForumSettings {

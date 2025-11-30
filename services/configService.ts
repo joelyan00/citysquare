@@ -9,21 +9,21 @@ const DEFAULT_CONFIG: AppConfig = {
     localTimeWindow: '48 hours',
     globalTimeWindow: '7 days',
     extraKeywords: 'Sports, Military, Technology, Heartwarming stories',
-    
+
     // Default Refresh Intervals (minutes)
     localRefreshInterval: 720, // 12 hours
     canadaRefreshInterval: 120, // 2 hours
     usaRefreshInterval: 120,    // 2 hours
     chinaRefreshInterval: 720,  // 12 hours
     intlRefreshInterval: 120,   // 2 hours
-    
+
     // Default Retention Limits
     localRetentionLimit: 50,
     canadaRetentionLimit: 50,
     usaRetentionLimit: 50,
     chinaRetentionLimit: 50,
     intlRetentionLimit: 50,
-    
+
     // Default values for new regional settings
     usaArticleCount: 10,
     usaTimeWindow: '24 hours',
@@ -31,12 +31,14 @@ const DEFAULT_CONFIG: AppConfig = {
 
     canadaArticleCount: 10,
     canadaTimeWindow: '24 hours',
-    
+
     chinaArticleCount: 10,
     chinaTimeWindow: '24 hours',
-    
+
     intlArticleCount: 8,
-    intlTimeWindow: '48 hours'
+    intlTimeWindow: '48 hours',
+
+    customCategories: []
   },
   forum: {
     topicKeywords: 'Cost of living, Traffic, New Restaurants, Weekend Events',

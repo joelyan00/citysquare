@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { ViewState } from '../types';
-import { Mail, Lock, Loader2, ArrowLeft } from 'lucide-react';
+import { Mail, Lock, Loader2, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 
 interface LoginViewProps {
     onNavigate: (view: ViewState) => void;
@@ -12,6 +12,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onNavigate }) => {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [showPassword, setShowPassword] = useState(false);
 
     const handleGoogleLogin = async () => {
         setLoading(true);
@@ -43,7 +44,8 @@ const LoginView: React.FC<LoginViewProps> = ({ onNavigate }) => {
 
             if (error) throw error;
 
-            // Navigation will be handled by the auth state listener in App.tsx
+            // Explicitly navigate to News
+            onNavigate(ViewState.NEWS);
         } catch (err: any) {
             setError(err.message || '登录失败，请检查邮箱和密码');
         } finally {
@@ -109,14 +111,25 @@ const LoginView: React.FC<LoginViewProps> = ({ onNavigate }) => {
                                 <input
                                     id="password"
                                     name="password"
-                                    type="password"
+                                    type={showPassword ? "text" : "password"}
                                     autoComplete="current-password"
                                     required
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md py-2 border"
+                                    className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-10 sm:text-sm border-gray-300 rounded-md py-2 border"
                                     placeholder="••••••••"
                                 />
+                                <button
+                                    type="button"
+                                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                >
+                                    {showPassword ? (
+                                        <EyeOff className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                                    ) : (
+                                        <Eye className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                                    )}
+                                </button>
                             </div>
                         </div>
 

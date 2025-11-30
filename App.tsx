@@ -52,9 +52,9 @@ const App: React.FC = () => {
         };
         setUser(userProfile);
 
-        // If on login/register page, redirect to Profile
+        // If on login/register page, redirect to News
         if (currentView === ViewState.LOGIN || currentView === ViewState.REGISTER) {
-          setCurrentView(ViewState.PROFILE);
+          setCurrentView(ViewState.NEWS);
         }
       } else {
         setUser(null);
@@ -109,9 +109,9 @@ const App: React.FC = () => {
   const renderContent = () => {
     switch (currentView) {
       case ViewState.NEWS:
-        return <NewsView city={city} onCityUpdate={updateCity} />;
+        return <NewsView city={city} onCityUpdate={updateCity} user={user} onNavigate={setCurrentView} />;
       case ViewState.FORUM:
-        return <ForumView city={city} />;
+        return <ForumView city={city} onNavigate={setCurrentView} />;
       case ViewState.SERVICES:
         return <ServicesView />;
       case ViewState.PROFILE:

@@ -18,6 +18,8 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onNavigate }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    const [success, setSuccess] = useState(false);
+
     const handleGoogleLogin = async () => {
         setLoading(true);
         setError(null);
@@ -64,16 +66,40 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onNavigate }) => {
 
             if (error) throw error;
 
-            // Supabase might require email confirmation. 
-            // For this demo, we assume auto-confirm or just notify user.
-            alert('注册成功！请检查您的邮箱以确认账户，或直接登录。');
-            onNavigate(ViewState.LOGIN);
+            // Show success state
+            setSuccess(true);
         } catch (err: any) {
             setError(err.message || '注册失败，请稍后重试');
         } finally {
             setLoading(false);
         }
     };
+
+    if (success) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+                <div className="sm:mx-auto sm:w-full sm:max-w-md">
+                    <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 text-center">
+                        <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                            <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
+                        <h3 className="text-lg leading-6 font-medium text-gray-900 mb-2">注册成功！</h3>
+                        <p className="text-sm text-gray-500 mb-6">
+                            您的账户已创建。请检查您的邮箱以确认账户，或直接登录。
+                        </p>
+                        <button
+                            onClick={() => onNavigate(ViewState.LOGIN)}
+                            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        >
+                            立即登录
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">

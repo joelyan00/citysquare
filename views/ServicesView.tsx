@@ -62,32 +62,31 @@ const ServicesView: React.FC = () => {
     }
   ]);
 
-  const filteredServices = activeType === 'All' 
-    ? services 
+  const filteredServices = activeType === 'All'
+    ? services
     : services.filter(s => s.type === activeType);
 
   return (
     <div className="bg-gray-50 min-h-full">
       {/* Search & Filter Header */}
       <div className="bg-white sticky top-0 z-30 shadow-sm pb-3">
-        <div className="p-4 max-w-5xl mx-auto w-full">
+        <div className="p-4 max-w-4xl mx-auto w-full">
           <div className="relative">
-            <input 
-              type="text" 
-              placeholder="搜索服务、物品..." 
+            <input
+              type="text"
+              placeholder="搜索服务、物品..."
               className="w-full bg-gray-100 rounded-2xl py-3.5 pl-11 pr-4 text-base font-medium focus:outline-none focus:ring-2 focus:ring-brand-500 text-gray-800"
             />
             <Search className="absolute left-4 top-4 text-gray-500" size={20} strokeWidth={2.5} />
           </div>
         </div>
-        
-        <div className="max-w-5xl mx-auto w-full">
+
+        <div className="max-w-4xl mx-auto w-full">
           <div className="flex overflow-x-auto px-4 gap-2 no-scrollbar pb-1">
             <button
               onClick={() => setActiveType('All')}
-              className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap border transition-colors ${
-                 activeType === 'All' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white border-gray-200 text-gray-700'
-              }`}
+              className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap border transition-colors ${activeType === 'All' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white border-gray-200 text-gray-700'
+                }`}
             >
               全部
             </button>
@@ -95,9 +94,8 @@ const ServicesView: React.FC = () => {
               <button
                 key={type}
                 onClick={() => setActiveType(type)}
-                className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap border transition-colors ${
-                   activeType === type ? 'bg-brand-600 text-white border-brand-600' : 'bg-white border-gray-200 text-gray-700'
-                }`}
+                className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap border transition-colors ${activeType === type ? 'bg-brand-600 text-white border-brand-600' : 'bg-white border-gray-200 text-gray-700'
+                  }`}
               >
                 {serviceLabels[type]}
               </button>
@@ -107,7 +105,7 @@ const ServicesView: React.FC = () => {
       </div>
 
       {/* Grid Content */}
-      <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 max-w-5xl mx-auto">
+      <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 max-w-4xl mx-auto">
         {filteredServices.map(item => (
           <div key={item.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 flex flex-col h-full active:shadow-md transition-shadow group">
             {/* Responsive Height: h-48 mobile, h-64 desktop */}
@@ -117,7 +115,7 @@ const ServicesView: React.FC = () => {
                 {item.price}
               </span>
               <span className="absolute bottom-3 left-3 bg-black/70 text-white text-xs font-bold px-2.5 py-1 rounded-md flex items-center backdrop-blur-sm">
-                 <Tag size={12} className="mr-1" strokeWidth={3} /> {serviceLabels[item.type]}
+                <Tag size={12} className="mr-1" strokeWidth={3} /> {serviceLabels[item.type]}
               </span>
             </div>
             <div className="p-4 flex flex-col flex-grow">
@@ -135,7 +133,7 @@ const ServicesView: React.FC = () => {
       </div>
 
       {/* Floating Action Button */}
-      <button 
+      <button
         onClick={() => setShowModal(true)}
         className="fixed bottom-20 right-5 lg:right-20 bg-brand-600 text-white p-4 rounded-full shadow-xl shadow-brand-500/40 hover:bg-brand-700 transition-transform active:scale-95 z-40"
       >
@@ -158,9 +156,9 @@ const ServicesView: React.FC = () => {
                 <label className="block text-sm font-bold text-gray-600 mb-2">标题</label>
                 <input type="text" className="w-full bg-gray-50 p-4 rounded-xl text-base font-medium border-none focus:ring-2 focus:ring-brand-500" placeholder="例如：闲置 iPhone 转让" />
               </div>
-               <div>
+              <div>
                 <label className="block text-sm font-bold text-gray-600 mb-2">图片</label>
-                <input type="file" className="block w-full text-sm font-medium text-gray-500 file:mr-4 file:py-2.5 file:px-5 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100"/>
+                <input type="file" className="block w-full text-sm font-medium text-gray-500 file:mr-4 file:py-2.5 file:px-5 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100" />
               </div>
               <div className="flex gap-3 pt-3">
                 <button onClick={() => setShowModal(false)} className="flex-1 py-3.5 bg-gray-100 text-gray-600 rounded-xl font-bold text-base">取消</button>
