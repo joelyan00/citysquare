@@ -518,71 +518,76 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
       {/* Create Post Modal */}
       {
         showCreateModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-[fadeIn_0.2s]" onClick={() => setShowCreateModal(false)}>
-            <div className="bg-white w-full max-w-2xl rounded-xl p-8 shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="fixed inset-0 z-[60] flex md:items-center md:justify-center bg-white md:bg-black/60 md:backdrop-blur-sm animate-[fadeIn_0.2s]">
+            <div className="bg-white w-full h-full md:h-auto md:max-w-2xl md:rounded-xl shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
 
               {/* Header */}
-              <div className="flex justify-between items-center mb-6">
+              <div className="flex justify-between items-center p-4 md:p-6 border-b md:border-none shrink-0">
                 <h3 className="text-xl font-medium text-emerald-800 flex items-center">
                   <span className="mr-2"><Plus size={20} /></span> 发表新话题
                 </h3>
-                <button onClick={() => setShowCreateModal(false)} className="text-gray-400 hover:text-gray-600">
+                <button onClick={() => setShowCreateModal(false)} className="text-gray-400 hover:text-gray-600 p-1">
                   <X size={24} />
                 </button>
               </div>
 
-              <form onSubmit={handleSubmitPost} className="space-y-4">
-                {/* Title Input */}
-                <div className="border border-gray-300 rounded-md px-3 py-2 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all">
-                  <input
-                    type="text"
-                    placeholder="标题：今日有何高见？"
-                    value={newPostTitle}
-                    onChange={e => setNewPostTitle(e.target.value)}
-                    className="w-full text-lg outline-none text-gray-700 placeholder-gray-300"
-                    autoFocus
-                  />
-                </div>
-
-                {/* Content Input */}
-                <div className="border border-gray-200 rounded-md p-3 h-64 focus-within:border-blue-500 transition-all bg-gray-50/50">
-                  <textarea
-                    placeholder="展开叙述..."
-                    value={newPostContent}
-                    onChange={e => setNewPostContent(e.target.value)}
-                    className="w-full h-full bg-transparent outline-none text-gray-600 resize-none placeholder-gray-300 text-base leading-relaxed"
-                  />
-                </div>
-
-                {/* Tip */}
-                <div className="flex items-center text-xs text-gray-700 font-medium">
-                  <span className="bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded mr-2 font-bold">TIP</span>
-                  支持粘贴 YouTube 视频链接，发布后将自动显示为播放器。
-                </div>
-
-                {/* Media Previews (Images only, since video is auto-detected) */}
-                {newPostImages.length > 0 && (
-                  <div className="flex gap-2 mt-2 overflow-x-auto pb-2">
-                    {newPostImages.map((img, idx) => (
-                      <div key={idx} className="relative flex-shrink-0">
-                        <img src={img} alt="Preview" className="w-20 h-20 object-cover rounded-lg border border-gray-200" />
-                        <button
-                          type="button"
-                          onClick={() => setNewPostImages(prev => prev.filter((_, i) => i !== idx))}
-                          className="absolute -top-1 -right-1 bg-black/50 text-white rounded-full p-0.5"
-                        >
-                          <X size={12} />
-                        </button>
-                      </div>
-                    ))}
+              {/* Scrollable Content */}
+              <div className="flex-1 overflow-y-auto p-4 md:p-6 md:pt-0">
+                <form id="create-post-form" onSubmit={handleSubmitPost} className="h-full flex flex-col space-y-4">
+                  {/* Title Input */}
+                  <div className="border border-gray-300 rounded-md px-3 py-2 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all shrink-0">
+                    <input
+                      type="text"
+                      placeholder="标题：今日有何高见？"
+                      value={newPostTitle}
+                      onChange={e => setNewPostTitle(e.target.value)}
+                      className="w-full text-lg outline-none text-gray-700 placeholder-gray-300"
+                      autoFocus
+                    />
                   </div>
-                )}
 
-                {/* Footer Toolbar */}
-                <div className="flex items-center justify-between pt-4 mt-2">
+                  {/* Content Input */}
+                  <div className="border border-gray-200 rounded-md p-3 focus-within:border-blue-500 transition-all bg-gray-50/50 flex-1 min-h-[200px]">
+                    <textarea
+                      placeholder="展开叙述..."
+                      value={newPostContent}
+                      onChange={e => setNewPostContent(e.target.value)}
+                      className="w-full h-full bg-transparent outline-none text-gray-600 resize-none placeholder-gray-300 text-base leading-relaxed"
+                    />
+                  </div>
+
+                  {/* Tip */}
+                  <div className="flex items-center text-xs text-gray-700 font-medium shrink-0">
+                    <span className="bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded mr-2 font-bold">TIP</span>
+                    支持粘贴 YouTube 视频链接，发布后将自动显示为播放器。
+                  </div>
+
+                  {/* Media Previews */}
+                  {newPostImages.length > 0 && (
+                    <div className="flex gap-2 mt-2 overflow-x-auto pb-2 shrink-0">
+                      {newPostImages.map((img, idx) => (
+                        <div key={idx} className="relative flex-shrink-0">
+                          <img src={img} alt="Preview" className="w-20 h-20 object-cover rounded-lg border border-gray-200" />
+                          <button
+                            type="button"
+                            onClick={() => setNewPostImages(prev => prev.filter((_, i) => i !== idx))}
+                            className="absolute -top-1 -right-1 bg-black/50 text-white rounded-full p-0.5"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </form>
+              </div>
+
+              {/* Footer Toolbar */}
+              <div className="p-4 md:p-6 border-t md:border-none bg-white shrink-0">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
 
                   {/* Left: Category & Image */}
-                  <div className="flex items-center space-x-4">
+                  <div className="flex items-center justify-between md:justify-start space-x-4">
                     <div className="flex items-center text-sm text-gray-600">
                       <span className="mr-2">发布至:</span>
                       <div className="relative">
@@ -598,33 +603,34 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
                     </div>
 
                     {/* Image Upload Trigger */}
-                    <label className="cursor-pointer text-gray-400 hover:text-gray-600 transition-colors" title="上传图片">
+                    <label className="cursor-pointer text-gray-400 hover:text-gray-600 transition-colors p-2" title="上传图片">
                       <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageUpload} />
-                      <Image size={20} />
+                      <Image size={24} />
                     </label>
                   </div>
 
                   {/* Right: Actions */}
-                  <div className="flex items-center space-x-3">
+                  <div className="flex items-center justify-end space-x-2 md:space-x-3">
                     <button
                       type="button"
                       onClick={handleVoiceInput}
-                      className={`flex items-center px-4 py-2 rounded border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm font-medium transition-colors ${isRecording ? 'text-red-500 border-red-200 bg-red-50' : ''}`}
+                      className={`flex items-center px-3 md:px-4 py-2 rounded border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm font-medium transition-colors ${isRecording ? 'text-red-500 border-red-200 bg-red-50' : ''}`}
                     >
-                      <Mic size={16} className="mr-1.5" /> 语音输入
+                      <Mic size={18} className="md:mr-1.5" /> <span className="hidden md:inline">语音输入</span>
                     </button>
 
                     <button
                       type="button"
                       onClick={handleAiPolish}
                       disabled={isPolishing || !newPostContent}
-                      className="flex items-center px-4 py-2 rounded bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-sm font-medium transition-colors disabled:opacity-50"
+                      className="flex items-center px-3 md:px-4 py-2 rounded bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-sm font-medium transition-colors disabled:opacity-50"
                     >
-                      <Wand2 size={16} className="mr-1.5" /> AI 润色
+                      <Wand2 size={18} className="md:mr-1.5" /> <span className="hidden md:inline">AI 润色</span>
                     </button>
 
                     <button
                       type="submit"
+                      form="create-post-form"
                       disabled={isSubmitting || !newPostTitle.trim() || !newPostContent.trim()}
                       className="px-6 py-2 rounded bg-emerald-600 text-white hover:bg-emerald-700 text-sm font-medium shadow-sm transition-colors disabled:opacity-50 disabled:bg-gray-300"
                     >
@@ -632,7 +638,7 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
                     </button>
                   </div>
                 </div>
-              </form>
+              </div>
             </div>
           </div>
         )
