@@ -324,8 +324,8 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
             </div>
           </div>
 
-          {/* Redesigned Tabs: Segmented Control */}
-          <div className="flex items-center bg-gray-100 p-1 rounded-xl mb-2 overflow-x-auto no-scrollbar">
+          {/* Redesigned Tabs: Pill Style */}
+          <div className="flex items-center gap-3 mb-2 overflow-x-auto no-scrollbar pb-1">
             {[
               { id: 'following', label: '关注' },
               { id: 'trending', label: '热门' },
@@ -335,9 +335,9 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${activeTab === tab.id
-                    ? 'bg-white text-indigo-600 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-700'
+                className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap shadow-sm ${activeTab === tab.id
+                    ? 'bg-indigo-600 text-white shadow-indigo-200'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
               >
                 {tab.label}
@@ -416,7 +416,7 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
 
                 {/* Content with conditional truncation */}
                 <div className={`text-gray-800 text-lg md:text-xl font-medium leading-relaxed mb-6 whitespace-pre-wrap ${isExpanded ? '' : 'line-clamp-4'}`}>
-                  {post.content}
+                  {post.videoUrl ? post.content.replace(post.videoUrl, '').trim() : post.content}
                 </div>
 
                 {/* Video Player */}
