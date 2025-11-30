@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { ForumPost, Comment } from '../types';
 import { ForumDatabase, ForumCrawler } from '../services/geminiService';
-import { MessageCircle, Heart, Clock, Zap, Hash, Flame, HelpCircle, ChevronDown, ChevronUp, Plus, Send, UserPlus, UserMinus, Users } from 'lucide-react';
+import { MessageCircle, Heart, Clock, Zap, Hash, Flame, HelpCircle, ChevronDown, ChevronUp, Plus, Send, UserPlus, UserMinus, Users, Image, Video, Mic, Wand2, X } from 'lucide-react';
+import { polishText } from '../services/geminiService';
 
 import { ViewState } from '../types';
 import { supabase } from '../services/supabaseClient';
@@ -28,6 +29,67 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
   const [expandedCommentPostId, setExpandedCommentPostId] = useState<string | null>(null);
   const [newCommentContent, setNewCommentContent] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
+
+  // New Feature States
+  const [newPostImages, setNewPostImages] = useState<string[]>([]);
+  const [newPostVideo, setNewPostVideo] = useState('');
+  const [isPolishing, setIsPolishing] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    // For demo, we'll use base64. In production, upload to Supabase Storage.
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (e.target?.result) {
+          setNewPostImages(prev => [...prev, e.target!.result as string]);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAiPolish = async (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent form submission
+    if (!newPostContent.trim()) return;
+    setIsPolishing(true);
+    try {
+      const polished = await polishText(newPostContent);
+      setNewPostContent(polished);
+    } catch (error) {
+      console.error("Polish failed", error);
+    } finally {
+      setIsPolishing(false);
+    }
+  };
+
+  const handleVoiceInput = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent form submission
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      alert('您的浏览器不支持语音输入');
+      return;
+    }
+
+    // @ts-ignore
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'zh-CN';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => setIsRecording(true);
+    recognition.onend = () => setIsRecording(false);
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setNewPostContent(prev => prev + transcript);
+    };
+
+    recognition.start();
+  };
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -97,14 +159,20 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
         comments: 0,
         timestamp: Date.now(),
         isAiGenerated: false,
-        tags: ['用户发布']
+        tags: ['用户发布'],
+        images: newPostImages,
+        videoUrl: newPostVideo
       };
 
       await ForumDatabase.save(newPost);
       setPosts([newPost, ...posts]);
       setShowCreateModal(false);
       setNewPostTitle('');
+      setShowCreateModal(false);
+      setNewPostTitle('');
       setNewPostContent('');
+      setNewPostImages([]);
+      setNewPostVideo('');
     } catch (error) {
       console.error("Failed to post:", error);
       alert("发布失败，请重试");
@@ -453,13 +521,77 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
                     autoFocus
                   />
                 </div>
-                <div>
+                <div className="mb-4">
                   <textarea
                     placeholder="分享你的想法..."
                     value={newPostContent}
-                    onChange={e => setNewPostContent(e.target.value)}
-                    className="w-full h-32 text-gray-600 resize-none outline-none bg-gray-50 rounded-xl p-4 focus:ring-2 focus:ring-indigo-100"
+                    onChange={(e) => setNewPostContent(e.target.value)}
+                    className="w-full h-32 bg-gray-50 border border-gray-100 rounded-xl p-4 font-bold text-gray-800 focus:ring-2 focus:ring-brand-500 outline-none resize-none"
                   />
+
+                  {/* Toolbar */}
+                  <div className="flex items-center gap-2 mt-2">
+                    {/* Image Upload */}
+                    <label className="cursor-pointer p-2 hover:bg-gray-100 rounded-full text-gray-500 hover:text-brand-600 transition-colors">
+                      <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageUpload} />
+                      <Image size={20} />
+                    </label>
+
+                    {/* Video URL Trigger (Simple prompt for now) */}
+                    <button
+                      onClick={() => {
+                        const url = prompt("请输入视频链接 (YouTube/Bilibili):");
+                        if (url) setNewPostVideo(url);
+                      }}
+                      className={`p-2 hover:bg-gray-100 rounded-full transition-colors ${newPostVideo ? 'text-brand-600' : 'text-gray-500'}`}
+                    >
+                      <Video size={20} />
+                    </button>
+
+                    {/* Voice Input */}
+                    <button
+                      onClick={handleVoiceInput}
+                      className={`p-2 hover:bg-gray-100 rounded-full transition-colors ${isRecording ? 'text-red-500 animate-pulse' : 'text-gray-500'}`}
+                    >
+                      <Mic size={20} />
+                    </button>
+
+                    <div className="flex-1"></div>
+
+                    {/* AI Polish */}
+                    <button
+                      onClick={handleAiPolish}
+                      disabled={isPolishing || !newPostContent}
+                      className="flex items-center gap-1 text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg hover:bg-indigo-100 disabled:opacity-50"
+                    >
+                      <Wand2 size={14} />
+                      {isPolishing ? '润色中...' : 'AI 润色'}
+                    </button>
+                  </div>
+
+                  {/* Media Previews */}
+                  {newPostImages.length > 0 && (
+                    <div className="flex gap-2 mt-3 overflow-x-auto pb-2">
+                      {newPostImages.map((img, idx) => (
+                        <div key={idx} className="relative flex-shrink-0">
+                          <img src={img} alt="Preview" className="w-20 h-20 object-cover rounded-lg border border-gray-200" />
+                          <button
+                            onClick={() => setNewPostImages(prev => prev.filter((_, i) => i !== idx))}
+                            className="absolute -top-1 -right-1 bg-black/50 text-white rounded-full p-0.5"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {newPostVideo && (
+                    <div className="mt-2 text-xs text-brand-600 flex items-center bg-brand-50 p-2 rounded-lg">
+                      <Video size={14} className="mr-1" /> 已添加视频链接
+                      <button onClick={() => setNewPostVideo('')} className="ml-auto text-gray-400 hover:text-red-500"><X size={14} /></button>
+                    </div>
+                  )}
                 </div>
                 <div className="flex justify-end space-x-3 pt-2">
                   <button

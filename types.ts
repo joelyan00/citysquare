@@ -56,6 +56,8 @@ export interface ForumPost {
   timestamp: number;
   isAiGenerated: boolean;
   tags: string[];
+  images?: string[];
+  videoUrl?: string;
 }
 
 export enum ServiceType {

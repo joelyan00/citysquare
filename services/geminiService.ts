@@ -567,7 +567,9 @@ export const ForumDatabase = {
       comments: item.comments,
       timestamp: item.timestamp,
       isAiGenerated: item.is_ai_generated,
-      tags: item.tags || []
+      tags: item.tags || [],
+      images: item.images || [],
+      videoUrl: item.video_url
     }));
   },
   save: async (post: ForumPost) => {
@@ -581,7 +583,9 @@ export const ForumDatabase = {
       comments: post.comments,
       timestamp: post.timestamp,
       is_ai_generated: post.isAiGenerated,
-      tags: post.tags
+      tags: post.tags,
+      images: post.images,
+      video_url: post.videoUrl
     });
   },
   getLastUpdateTime: async (): Promise<number> => {
@@ -722,7 +726,9 @@ export const ForumDatabase = {
       comments: item.comments,
       timestamp: item.timestamp,
       isAiGenerated: item.is_ai_generated,
-      tags: item.tags || []
+      tags: item.tags || [],
+      images: item.images || [],
+      videoUrl: item.video_url
     }));
   }
 };
@@ -792,5 +798,24 @@ export const generateAdCopy = async (rawText: string, productName: string) => {
     return JSON.parse(response.text || "{}");
   } catch (e) {
     return { title: productName, content: rawText };
+  }
+};
+
+export const polishText = async (text: string): Promise<string> => {
+  if (!apiKey) return text;
+  try {
+    const response = await generateWithRetry("gemini-2.5-flash", {
+      contents: `Polish the following forum post content to make it more engaging, professional, and grammatically correct. Keep the original meaning and tone (or slightly improve it). Return ONLY the polished text.
+      
+      Original Text:
+      ${text}`,
+      config: {
+        responseMimeType: "text/plain"
+      }
+    });
+    return response.text?.trim() || text;
+  } catch (e) {
+    console.error("Polish Text Error:", e);
+    return text;
   }
 };
