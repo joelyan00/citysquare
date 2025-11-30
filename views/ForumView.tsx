@@ -292,48 +292,54 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
                 onClick={(e) => toggleExpand(post.id, e)}
               >
                 <div className="flex items-start justify-between mb-4">
-                  <div className="flex gap-2 mb-2 flex-wrap">
-                    {post.tags.slice(0, 3).map(tag => (
+                  <div className="flex items-center gap-3 mb-2 flex-wrap">
+                    {/* Author Name */}
+                    <span className="text-base font-black text-gray-900">
+                      @{post.author}
+                    </span>
+
+                    {/* Follow Button (Moved here) */}
+                    {user && post.author !== (user.email?.split('@')[0]) && (
+                      <button
+                        onClick={(e) => followedNames.includes(post.author) ? handleUnfollow(post.author, e) : handleFollow(post.author, e)}
+                        className={`text-xs font-bold px-3 py-1 rounded-full flex items-center transition-colors ${followedNames.includes(post.author)
+                          ? 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                          : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm'
+                          }`}
+                      >
+                        {followedNames.includes(post.author) ? (
+                          <>
+                            <UserMinus size={12} className="mr-1" /> 已关注
+                          </>
+                        ) : (
+                          <>
+                            <UserPlus size={12} className="mr-1" /> 关注
+                          </>
+                        )}
+                      </button>
+                    )}
+
+                    {/* Other Tags (excluding '用户发布') */}
+                    {post.tags.filter(t => t !== '用户发布').map(tag => (
                       <span key={tag} className="text-xs font-bold bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg flex items-center">
                         <Hash size={12} className="mr-0.5" strokeWidth={3} /> {tag}
                       </span>
                     ))}
+
                     {post.isAiGenerated && (
                       <span className="text-xs font-bold bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg border border-indigo-100 flex items-center">
                         <Zap size={12} className="mr-0.5 fill-current" /> 话题
                       </span>
                     )}
                   </div>
+
+                  {/* Right Side: Timestamp Only */}
                   <div className="flex flex-col items-end ml-2">
-                    <span className="text-sm font-bold text-indigo-600 mb-1">
-                      @{post.author}
-                    </span>
                     <span className="text-xs font-bold text-gray-400 flex items-center whitespace-nowrap">
                       <Clock size={14} className="mr-1" />
                       {Math.floor((Date.now() - post.timestamp) / 60000)}分钟前
                     </span>
                   </div>
-
-                  {/* Follow Button */}
-                  {user && post.author !== (user.email?.split('@')[0]) && (
-                    <button
-                      onClick={(e) => followedNames.includes(post.author) ? handleUnfollow(post.author, e) : handleFollow(post.author, e)}
-                      className={`ml-auto text-xs font-bold px-3 py-1.5 rounded-full flex items-center transition-colors ${followedNames.includes(post.author)
-                        ? 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                        : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
-                        }`}
-                    >
-                      {followedNames.includes(post.author) ? (
-                        <>
-                          <UserMinus size={14} className="mr-1" /> 已关注
-                        </>
-                      ) : (
-                        <>
-                          <UserPlus size={14} className="mr-1" /> 关注
-                        </>
-                      )}
-                    </button>
-                  )}
                 </div>
 
                 <h3 className="text-2xl md:text-3xl font-black text-gray-900 mb-4 leading-tight tracking-tight">{post.title}</h3>
