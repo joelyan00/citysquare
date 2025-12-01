@@ -43,9 +43,9 @@ const cleanJsonString = (str: string) => {
   const firstBracket = cleaned.indexOf('[');
   const lastBracket = cleaned.lastIndexOf(']');
   if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
-    cleaned = cleaned.substring(firstBracket, lastBracket + 1);
+    return cleaned.substring(firstBracket, lastBracket + 1);
   }
-  return cleaned;
+  return "[]";
 };
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -232,10 +232,12 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
   Step 1: SEARCH for trending news URLs first.
   Step 2: SELECT unique, diverse stories (Sports, Politics, Tech, Heartwarming, Official Notices).
   Step 3: Write a deep, narrative article (4 paragraphs) for each item.
+       - **FORMAT REQUIREMENT**: Start the content with "据 [Source Name] 报道，".
        - Paragraph 1: The Core Event (What happened, Who, When, Where).
        - Paragraph 2: Background & Context (History, causes, detailed process).
        - Paragraph 3: Viewpoints & Analysis (Naturally integrate expert opinions, quotes, or public sentiment/analysis).
        - Paragraph 4: Impact & Future (Consequences, potential impact).
+       - **ENDING REQUIREMENT**: Append the source link at the very end of the content in this format: "(Link: [Source URL])".
     
   IMPORTANT:
   - Do NOT use labels like [Time], [Location], **Title**.
@@ -248,11 +250,11 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
   [{ "title": "", "summary": "", "content": "", "source_name": "", "source_url": "", "image_url": "URL of the actual news image if found", "youtube_url": "" }]
   
   CRITICAL INSTRUCTIONS FOR MEDIA:
-  1. IMAGES: You MUST try to extract the actual lead image URL from the search result. If found, put it in "image_url". Do NOT invent URLs. If no image is found, leave it empty.
-  2. YOUTUBE: If the news is related to a video or has a YouTube video, find the YouTube link and put it in "youtube_url".
-  3. DUPLICATES: Do not generate multiple items for the exact same story.
-  4. LINKS: If the news involves an application, registration, or official document, YOU MUST include the direct URL in the content (e.g. "Official Application Link: [URL]").
-  5. IMAGES: PRIORITIZE extracting the real image from the news source. Only use the "image_url" field if it is a real, accessible URL from the search result.`;
+  1. IMAGES: You MUST try to extract the actual lead image URL from the search result. If found, put it in "image_url".
+  2. NO AI IMAGES: If no real image URL is found in the search results, leave "image_url" EMPTY (""). Do NOT invent URLs. Do NOT describe an image for generation.
+  3. YOUTUBE: If the news is related to a video or has a YouTube video, find the YouTube link and put it in "youtube_url".
+  4. DUPLICATES: Do not generate multiple items for the exact same story.
+  5. LINKS: If the news involves an application, registration, or official document, YOU MUST include the direct URL in the content (e.g. "Official Application Link: [URL]").`;
 
   try {
     const searchContext = `Search for trending news about "${topic}" in the last ${timeWindow}. Focus on: ${keywords}. Return ${articleCount} items.`;
@@ -326,7 +328,7 @@ export const NewsDatabase = {
       .from('news')
       .select('content')
       .eq('id', id)
-      .single();
+      .maybeSingle();
     return data?.content || null;
   },
 
@@ -448,7 +450,7 @@ export const NewsDatabase = {
       .eq('category', category)
       .order('timestamp', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
     return data?.timestamp || 0;
   },
 
@@ -602,7 +604,7 @@ export const ForumDatabase = {
     });
   },
   getLastUpdateTime: async (): Promise<number> => {
-    const { data } = await supabase.from('forum').select('timestamp').order('timestamp', { ascending: false }).limit(1).single();
+    const { data } = await supabase.from('forum').select('timestamp').order('timestamp', { ascending: false }).limit(1).maybeSingle();
     return data?.timestamp || 0;
   },
   clearAll: async () => {
@@ -636,7 +638,7 @@ export const ForumDatabase = {
     // We will read, increment, write for simplicity, or just let the UI handle the count optimistically 
     // and the DB count be updated on next fetch if we had a count trigger.
     // Let's just update the count manually.
-    const { data: post } = await supabase.from('forum').select('comments').eq('id', postId).single();
+    const { data: post } = await supabase.from('forum').select('comments').eq('id', postId).maybeSingle();
     if (post) {
       await supabase.from('forum').update({ comments: (post.comments || 0) + 1 }).eq('id', postId);
     }
