@@ -22,7 +22,10 @@ const App: React.FC = () => {
     return (saved as ViewState) || ViewState.NEWS;
   });
 
+  // Use ref to track currentView for event listeners
+  const currentViewRef = React.useRef(currentView);
   useEffect(() => {
+    currentViewRef.current = currentView;
     localStorage.setItem('urbanhub_current_view', currentView);
   }, [currentView]);
   const [apiKeyMissing, setApiKeyMissing] = useState(false);
@@ -67,7 +70,7 @@ const App: React.FC = () => {
         setUser(userProfile);
 
         // If on login/register page, redirect to News
-        if (currentView === ViewState.LOGIN || currentView === ViewState.REGISTER) {
+        if (currentViewRef.current === ViewState.LOGIN || currentViewRef.current === ViewState.REGISTER) {
           setCurrentView(ViewState.NEWS);
         }
       } else {
