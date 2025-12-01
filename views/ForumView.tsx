@@ -395,6 +395,12 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
                       </span>
                     ))}
 
+                    {post.images && post.images.length > 0 && (
+                      <span className="text-xs font-bold bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg border border-blue-100 flex items-center">
+                        <ImageIcon size={12} className="mr-0.5" /> {post.images.length}图
+                      </span>
+                    )}
+
                     {post.isAiGenerated && (
                       <span className="text-xs font-bold bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg border border-indigo-100 flex items-center">
                         <Zap size={12} className="mr-0.5 fill-current" /> 话题
