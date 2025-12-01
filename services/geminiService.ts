@@ -961,17 +961,49 @@ export const AdminDatabase = {
   },
 
   getPendingAds: async (): Promise<any[]> => {
-    // For demo, returning all ads
+    if (!supabaseUrl) return [];
     const { data, error } = await supabase
       .from('ads')
       .select('*')
+      .eq('status', 'pending')
       .order('created_at', { ascending: false });
-    return data || [];
+
+    if (error) {
+      console.error('Get Pending Ads Error:', error);
+      return [];
+    }
+
+    return (data || []).map(item => ({
+      id: item.id,
+      title: item.title,
+      content: item.content,
+      rawContent: item.raw_content,
+      imageUrl: item.image_url,
+      contactInfo: item.contact_info,
+      scope: item.scope,
+      durationDays: item.duration_days,
+      priceTotal: item.price_total,
+      status: item.status
+    }));
   },
 
   approveAd: async (adId: string): Promise<boolean> => {
-    // Placeholder: In real app, update status column
-    return true;
+    const { error } = await supabase
+      .from('ads')
+      .update({ status: 'active' })
+      .eq('id', adId);
+    return !error;
+  },
+
+  rejectAd: async (adId: string, reason: string): Promise<boolean> => {
+    const { error } = await supabase
+      .from('ads')
+      .update({
+        status: 'rejected',
+        rejection_reason: reason
+      })
+      .eq('id', adId);
+    return !error;
   },
 
   approveService: async (serviceId: string): Promise<boolean> => {

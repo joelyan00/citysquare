@@ -26,6 +26,18 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
   const [newCatTopic, setNewCatTopic] = useState('');
   const [newCatKeywords, setNewCatKeywords] = useState('');
 
+  // Ad Review State
+  const [selectedAd, setSelectedAd] = useState<any | null>(null);
+  const [showRejectInput, setShowRejectInput] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+
+  useEffect(() => {
+    if (!selectedAd) {
+      setShowRejectInput(false);
+      setRejectReason('');
+    }
+  }, [selectedAd]);
+
   useEffect(() => {
     loadConfig();
     loadSyncStatus();
@@ -132,7 +144,8 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
       keywords: newCatKeywords,
       articleCount: 10,
       timeWindow: '24 hours',
-      retentionLimit: 50
+      retentionLimit: 50,
+      refreshInterval: 60
     };
 
     setConfig({
@@ -182,8 +195,18 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
     if (confirm('确定通过该广告申请吗？')) {
       await AdminDatabase.approveAd(id);
       loadAds();
+      setSelectedAd(null);
       showStatus('广告申请已通过');
     }
+  };
+
+  const handleRejectAdConfirm = async () => {
+    if (!selectedAd || !rejectReason.trim()) return;
+
+    await AdminDatabase.rejectAd(selectedAd.id, rejectReason);
+    loadAds();
+    setSelectedAd(null);
+    showStatus('广告已拒绝');
   };
 
   if (!config) return <div className="p-8 text-center">加载配置中...</div>;
@@ -227,8 +250,8 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
               className={`flex items-center py-3 px-2 border-b-2 font-medium text-sm transition-colors ${activeTab === tab.id
-                  ? 'border-indigo-600 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-indigo-600 text-indigo-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
             >
               <tab.icon size={16} className="mr-2" />
@@ -407,20 +430,131 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
             ) : (
               <div className="space-y-4">
                 {ads.map(ad => (
-                  <div key={ad.id} className="border border-gray-200 rounded-lg p-4 flex gap-4">
+                  <div
+                    key={ad.id}
+                    onClick={() => setSelectedAd(ad)}
+                    className="border border-gray-200 rounded-lg p-4 flex gap-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                  >
                     {ad.imageUrl && <img src={ad.imageUrl} className="w-24 h-24 object-cover rounded" alt="ad" />}
                     <div className="flex-1">
-                      <div className="font-bold text-lg">{ad.title}</div>
-                      <div className="text-sm text-gray-600 mt-1">{ad.description}</div>
-                      <div className="mt-2 flex gap-2">
-                        <button onClick={() => handleApproveAd(ad.id)} className="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600">通过</button>
-                        <button className="bg-red-100 text-red-600 px-3 py-1 rounded text-sm hover:bg-red-200">拒绝</button>
+                      <div className="flex justify-between items-start">
+                        <div className="font-bold text-lg">{ad.title}</div>
+                        <span className="text-xs font-mono text-gray-400 bg-gray-100 px-2 py-1 rounded">ID: {ad.id?.slice(0, 8)}</span>
                       </div>
+                      <div className="text-sm text-gray-600 mt-1 line-clamp-2">{ad.description || ad.content}</div>
+                      <div className="mt-2 text-xs text-blue-600 font-bold">点击审核</div>
                     </div>
                   </div>
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Ad Details Modal */}
+        {selectedAd && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn" onClick={() => setSelectedAd(null)}>
+            <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+              <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                <h3 className="text-xl font-black text-gray-900">广告审核</h3>
+                <button onClick={() => setSelectedAd(null)} className="text-gray-400 hover:text-gray-600">
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="p-6 overflow-y-auto">
+                <div className="flex flex-col md:flex-row gap-6">
+                  {selectedAd.imageUrl && (
+                    <img src={selectedAd.imageUrl} className="w-full md:w-1/2 rounded-xl object-cover shadow-sm" alt="Ad Preview" />
+                  )}
+                  <div className="flex-1 space-y-4">
+                    <div>
+                      <label className="text-xs font-bold text-gray-500 uppercase flex justify-between">
+                        标题
+                        <span className="font-mono text-gray-400">ID: {selectedAd.id}</span>
+                      </label>
+                      <div className="text-xl font-bold text-gray-900">{selectedAd.title}</div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-gray-500 uppercase">内容</label>
+                      <div className="text-gray-700 whitespace-pre-wrap">{selectedAd.content}</div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-gray-500 uppercase">原始需求</label>
+                      <div className="text-gray-500 text-sm bg-gray-50 p-2 rounded">{selectedAd.rawContent}</div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs font-bold text-gray-500 uppercase">联系方式</label>
+                        <div className="font-medium">{selectedAd.contactInfo || '未提供'}</div>
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-gray-500 uppercase">总价</label>
+                        <div className="font-bold text-green-600">${selectedAd.priceTotal}</div>
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-gray-500 uppercase">投放范围</label>
+                        <div className="font-medium capitalize">{selectedAd.scope}</div>
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-gray-500 uppercase">时长</label>
+                        <div className="font-medium">{selectedAd.durationDays} 天</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Rejection Form */}
+                {showRejectInput && (
+                  <div className="mt-6 bg-red-50 p-4 rounded-xl border border-red-100 animate-in slide-in-from-top-2">
+                    <label className="block text-sm font-bold text-red-800 mb-2">拒绝理由</label>
+                    <textarea
+                      value={rejectReason}
+                      onChange={(e) => setRejectReason(e.target.value)}
+                      className="w-full border-red-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-red-500 outline-none"
+                      placeholder="请详细说明拒绝原因，以便用户修改..."
+                      rows={3}
+                      autoFocus
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
+                {showRejectInput ? (
+                  <>
+                    <button
+                      onClick={() => setShowRejectInput(false)}
+                      className="px-4 py-2 text-gray-600 font-bold hover:bg-gray-200 rounded-lg transition-colors"
+                    >
+                      取消
+                    </button>
+                    <button
+                      onClick={handleRejectAdConfirm}
+                      disabled={!rejectReason.trim()}
+                      className="px-6 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 disabled:opacity-50 shadow-sm transition-colors"
+                    >
+                      确认拒绝
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => setShowRejectInput(true)}
+                      className="px-6 py-2 bg-white border border-red-200 text-red-600 font-bold rounded-lg hover:bg-red-50 transition-colors"
+                    >
+                      拒绝
+                    </button>
+                    <button
+                      onClick={() => handleApproveAd(selectedAd.id)}
+                      className="px-6 py-2 bg-green-500 text-white font-bold rounded-lg hover:bg-green-600 shadow-lg shadow-green-200 transition-colors"
+                    >
+                      通过审核
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
         )}
 

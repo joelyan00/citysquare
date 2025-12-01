@@ -178,7 +178,8 @@ export interface AdItem {
   scope: AdScope;
   durationDays: number;
   priceTotal: number;
-  status?: 'active' | 'pending' | 'expired';
+  status?: 'active' | 'pending' | 'expired' | 'rejected';
+  rejectionReason?: string;
 }
 
 export interface AppConfig {
