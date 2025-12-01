@@ -62,9 +62,9 @@ const App: React.FC = () => {
         };
         setUser(userProfile);
 
-        // If on login/register page, redirect to Forum
+        // If on login/register page, redirect to Profile
         if (currentViewRef.current === ViewState.LOGIN || currentViewRef.current === ViewState.REGISTER) {
-          setCurrentView(ViewState.FORUM);
+          setCurrentView(ViewState.PROFILE);
         }
       } else {
         setUser(null);
