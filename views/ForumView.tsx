@@ -331,10 +331,10 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
           {/* Redesigned Tabs: Pill Style */}
           <div className="flex items-center gap-3 mb-2 overflow-x-auto no-scrollbar pb-1">
             {[
-              { id: 'following', label: '关注' },
               { id: 'trending', label: '热门' },
               { id: 'latest', label: '最新' },
-              ...(user ? [{ id: 'mine', label: '我的' }] : [])
+              ...(user ? [{ id: 'mine', label: '我的' }] : []),
+              { id: 'following', label: '关注' }
             ].map((tab) => (
               <button
                 key={tab.id}
