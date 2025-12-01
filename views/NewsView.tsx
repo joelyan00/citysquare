@@ -241,6 +241,16 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
           )}
 
           <div className="p-6 md:p-8">
+            {/* Source Header */}
+            <div className="flex items-center space-x-2 mb-3">
+              <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center">
+                <span className="text-[10px] font-black text-gray-500">{item.source?.[0]?.toUpperCase() || 'N'}</span>
+              </div>
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                {item.source || 'CitySquare News'}
+              </span>
+            </div>
+
             <h2 className="text-2xl md:text-4xl font-black text-gray-900 leading-tight mb-4 tracking-tight">
               {item.title}
             </h2>
@@ -291,11 +301,7 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
               </div>
             </div>
 
-            <div className="mt-5 pt-3 border-t border-dashed border-gray-100 flex flex-col gap-2">
-              <div className="text-xs font-bold text-gray-300 text-center py-1 mt-1">
-                信息来源：{item.source || '互联网'}
-              </div>
-            </div>
+
           </div>
         </article>
       );
