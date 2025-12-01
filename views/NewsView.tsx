@@ -333,7 +333,7 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
         <div className="max-w-4xl mx-auto">
           <div className="px-5 py-4 flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-black text-gray-900 tracking-tight">City<span className="text-brand-600">Square</span></h1>
+              <h1 className="text-3xl font-black text-gray-900 tracking-tight">city<span className="text-brand-600">666</span></h1>
             </div>
             {/* User Avatar */}
             {user && (

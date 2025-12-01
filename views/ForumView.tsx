@@ -36,6 +36,9 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
   const [isPolishing, setIsPolishing] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
 
+  // Comment Media State
+  const [newCommentImages, setNewCommentImages] = useState<string[]>([]);
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -54,6 +57,25 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
       } catch (error) {
         console.error("Upload failed", error);
         alert('图片上传出错');
+      }
+    }
+  };
+
+  const handleCommentImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      try {
+        const imgurLink = await uploadImageToImgur(file);
+        if (imgurLink) {
+          setNewCommentImages(prev => [...prev, imgurLink]);
+        } else {
+          alert('评论图片上传失败');
+        }
+      } catch (error) {
+        console.error("Comment upload failed", error);
       }
     }
   };
@@ -264,33 +286,34 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
     setSubmittingComment(true);
     try {
       const newComment: Comment = {
-        id: `c - ${Date.now()} `,
+        id: `comment-${Date.now()}`,
+        postId,
         author: user.email?.split('@')[0] || '匿名用户',
         content: newCommentContent,
         timestamp: Date.now(),
+        images: newCommentImages,
         likes: 0
       };
 
-      // Optimistic Update
+      await ForumDatabase.addComment(postId, newComment);
+
+      // Update local state
       const updatedPosts = posts.map(p => {
         if (p.id === postId) {
           return {
             ...p,
             comments: p.comments + 1,
-            commentsList: [newComment, ...(p.commentsList || [])]
+            commentsList: [...(p.commentsList || []), newComment]
           };
         }
         return p;
       });
 
       setPosts(updatedPosts);
-
-      // Persist to Backend
-      await ForumDatabase.addComment(postId, newComment);
-
       setNewCommentContent('');
-    } catch (err) {
-      console.error(err);
+      setNewCommentImages([]); // Reset images
+    } catch (error) {
+      console.error("Failed to comment:", error);
       alert("评论失败");
     } finally {
       setSubmittingComment(false);
@@ -532,14 +555,45 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
                       <h4 className="font-bold text-gray-900 mb-4">评论 ({post.comments})</h4>
 
                       {/* Comment List */}
-                      <div className="space-y-4 mb-6 max-h-60 overflow-y-auto">
+                      <div className="space-y-4 mb-6 max-h-96 overflow-y-auto">
                         {post.commentsList?.map(comment => (
                           <div key={comment.id} className="bg-gray-50 p-3 rounded-xl">
                             <div className="flex justify-between items-start mb-1">
                               <span className="font-bold text-sm text-gray-900">@{comment.author}</span>
                               <span className="text-xs text-gray-400">{Math.floor((Date.now() - comment.timestamp) / 60000)}分钟前</span>
                             </div>
-                            <p className="text-gray-700 text-sm">{comment.content}</p>
+                            <p className="text-gray-700 text-sm whitespace-pre-wrap">{comment.content}</p>
+
+                            {/* Comment YouTube Video */}
+                            {comment.content.match(/(https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)[^\s]+)/) && (
+                              <div className="mt-2 rounded-lg overflow-hidden">
+                                <iframe
+                                  width="100%"
+                                  height="200"
+                                  src={`https://www.youtube.com/embed/${comment.content.match(/(?:v=|youtu\.be\/)([^&]+)/)?.[1]}`}
+                                  title="YouTube video player"
+                                  frameBorder="0"
+                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                  allowFullScreen
+                                  className="w-full aspect-video"
+                                ></iframe>
+                              </div>
+                            )}
+
+                            {/* Comment Images */}
+                            {comment.images && comment.images.length > 0 && (
+                              <div className="mt-2 grid grid-cols-3 gap-2">
+                                {comment.images.map((img, idx) => (
+                                  <img
+                                    key={idx}
+                                    src={img}
+                                    alt="Comment image"
+                                    className="rounded-lg object-cover w-full h-24 cursor-pointer hover:opacity-90"
+                                    onClick={() => window.open(img, '_blank')}
+                                  />
+                                ))}
+                              </div>
+                            )}
                           </div>
                         ))}
                         {(!post.commentsList || post.commentsList.length === 0) && (
@@ -548,22 +602,47 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
                       </div>
 
                       {/* Add Comment Form */}
-                      <form onSubmit={(e) => handleSubmitComment(post.id, e)} className="flex gap-2">
-                        <input
-                          type="text"
-                          placeholder="写下你的评论..."
-                          value={newCommentContent}
-                          onChange={e => setNewCommentContent(e.target.value)}
-                          className="flex-1 bg-gray-100 border-transparent focus:bg-white focus:border-indigo-500 rounded-full px-4 py-2 text-sm outline-none transition-all"
-                        />
-                        <button
-                          type="submit"
-                          disabled={submittingComment || !newCommentContent.trim()}
-                          className="bg-indigo-600 text-white p-2 rounded-full hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-                        >
-                          <Send size={16} />
-                        </button>
-                      </form>
+                      <div className="flex flex-col gap-2">
+                        {/* Image Preview */}
+                        {newCommentImages.length > 0 && (
+                          <div className="flex gap-2 overflow-x-auto py-2">
+                            {newCommentImages.map((img, idx) => (
+                              <div key={idx} className="relative shrink-0">
+                                <img src={img} className="h-16 w-16 object-cover rounded-lg" />
+                                <button
+                                  onClick={() => setNewCommentImages(prev => prev.filter((_, i) => i !== idx))}
+                                  className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5"
+                                >
+                                  <X size={12} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        <form onSubmit={(e) => handleSubmitComment(post.id, e)} className="flex gap-2 items-end">
+                          <div className="flex-1 relative">
+                            <input
+                              type="text"
+                              placeholder="写下你的评论..."
+                              value={newCommentContent}
+                              onChange={e => setNewCommentContent(e.target.value)}
+                              className="w-full bg-gray-100 border-transparent focus:bg-white focus:border-indigo-500 rounded-full pl-4 pr-10 py-2 text-sm outline-none transition-all"
+                            />
+                            <label className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-indigo-600 p-1">
+                              <input type="file" multiple accept="image/*" className="hidden" onChange={handleCommentImageUpload} />
+                              <ImageIcon size={18} />
+                            </label>
+                          </div>
+                          <button
+                            type="submit"
+                            disabled={submittingComment || (!newCommentContent.trim() && newCommentImages.length === 0)}
+                            className="bg-indigo-600 text-white p-2 rounded-full hover:bg-indigo-700 disabled:opacity-50 transition-colors shrink-0"
+                          >
+                            <Send size={16} />
+                          </button>
+                        </form>
+                      </div>
                     </div>
                   )
                 }

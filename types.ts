@@ -47,9 +47,11 @@ export interface NewsItem {
 
 export interface Comment {
   id: string;
+  postId: string;
   author: string;
   content: string;
   timestamp: number;
+  images?: string[];
   likes: number;
 }
 
