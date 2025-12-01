@@ -137,6 +137,35 @@ export const uploadImageToSupabase = async (base64Data: string, filename: string
   }
 };
 
+export const uploadImageToImgur = async (file: Blob | File): Promise<string | null> => {
+  const CLIENT_ID = 'd3372338634d00e'; // Public Demo Client ID. Replace with your own if needed.
+
+  try {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const response = await fetch('https://api.imgur.com/3/image', {
+      method: 'POST',
+      headers: {
+        Authorization: `Client-ID ${CLIENT_ID}`,
+      },
+      body: formData,
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      return data.data.link;
+    } else {
+      console.error('Imgur Upload Failed:', data);
+      return null;
+    }
+  } catch (error) {
+    console.error('Imgur Upload Error:', error);
+    return null;
+  }
+};
+
 const generateNewsImage = async (headline: string, category: string): Promise<string | undefined> => {
   if (!apiKey) return undefined;
 
@@ -303,10 +332,23 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
       let imageUrl = item.image_url && isValidUrl(item.image_url) ? item.image_url : undefined;
 
       if (!imageUrl) {
-        // User requested to avoid unrealistic AI images.
-        // If no real image is found, we will fall back to a placeholder or undefined.
-        // We skip the generateNewsImage call here.
-        imageUrl = undefined;
+        // Fallback to AI Image Generation + Imgur Upload
+        try {
+          console.log(`Generating AI image for: ${item.title}`);
+          const base64Image = await generateNewsImage(item.title, category);
+          if (base64Image) {
+            // Convert Base64 to Blob
+            const blob = base64ToBlob(base64Image);
+            // Upload to Imgur
+            const imgurLink = await uploadImageToImgur(blob);
+            if (imgurLink) {
+              imageUrl = imgurLink;
+              console.log(`AI Image uploaded to Imgur: ${imgurLink}`);
+            }
+          }
+        } catch (err) {
+          console.error("Failed to generate/upload AI image:", err);
+        }
       }
 
       // Clean URL
@@ -857,7 +899,13 @@ export const polishText = async (text: string): Promise<string> => {
   if (!apiKey) return text;
   try {
     const response = await generateWithRetry("gemini-2.5-flash", {
-      contents: `Polish the following forum post content to make it more engaging, professional, and grammatically correct. Keep the original meaning and tone (or slightly improve it). Return ONLY the polished text.
+      contents: `You are a professional editor. Your task is to polish the following text to make it more engaging, professional, and grammatically correct.
+      
+      CRITICAL INSTRUCTION:
+      - You MUST output the result in the SAME LANGUAGE as the input text.
+      - Do NOT translate the text.
+      - If the input is Chinese, output Chinese.
+      - If the input is English, output English.
       
       Original Text:
       ${text}`,

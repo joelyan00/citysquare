@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ForumPost, Comment, UserRole } from '../types';
-import { ForumDatabase, ForumCrawler, AdminDatabase } from '../services/geminiService';
+import { ForumDatabase, ForumCrawler, AdminDatabase, uploadImageToImgur } from '../services/geminiService';
 import { MessageSquare, Heart, Send, Hash, X, UserPlus, UserMinus, Zap, Image as ImageIcon, Video, Clock, Trash2, Plus, ChevronDown, ChevronUp, MessageCircle, Wand2 } from 'lucide-react';
 import { polishText } from '../services/geminiService';
 
@@ -40,16 +40,21 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    // For demo, we'll use base64. In production, upload to Supabase Storage.
+    // Upload to Imgur
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        if (e.target?.result) {
-          setNewPostImages(prev => [...prev, e.target!.result as string]);
+      // Show a temporary placeholder or loading state could be better, but for now we just append the result
+      try {
+        const imgurLink = await uploadImageToImgur(file);
+        if (imgurLink) {
+          setNewPostImages(prev => [...prev, imgurLink]);
+        } else {
+          alert('图片上传失败，请重试');
         }
-      };
-      reader.readAsDataURL(file);
+      } catch (error) {
+        console.error("Upload failed", error);
+        alert('图片上传出错');
+      }
     }
   };
 
@@ -371,9 +376,9 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
                     {user && post.author !== (user.email?.split('@')[0]) && (
                       <button
                         onClick={(e) => followedNames.includes(post.author) ? handleUnfollow(post.author, e) : handleFollow(post.author, e)}
-                        className={`text - xs font - bold px - 3 py - 1 rounded - full flex items - center transition - colors ${followedNames.includes(post.author)
-                          ? 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                          : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm'
+                        className={`text-xs font-bold px-3 py-1 rounded-full flex items-center transition-all ${followedNames.includes(post.author)
+                          ? 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                          : 'border border-indigo-600 text-indigo-600 bg-transparent hover:bg-indigo-50'
                           } `}
                       >
                         {followedNames.includes(post.author) ? (
@@ -653,7 +658,7 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
                     {/* Image Upload Trigger */}
                     <label className="cursor-pointer text-gray-400 hover:text-gray-600 transition-colors p-2" title="上传图片">
                       <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageUpload} />
-                      <Image size={24} />
+                      <ImageIcon size={24} />
                     </label>
                   </div>
 
