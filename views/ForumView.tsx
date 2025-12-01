@@ -356,8 +356,8 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
             {[
               { id: 'trending', label: '热门' },
               { id: 'latest', label: '最新' },
+              { id: 'following', label: '关注' },
               ...(user ? [{ id: 'mine', label: '我的' }] : []),
-              { id: 'following', label: '关注' }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -735,9 +735,10 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
                   {/* Left: Image Upload */}
                   <div className="flex items-center justify-between md:justify-start space-x-4">
                     {/* Image Upload Trigger */}
-                    <label className="cursor-pointer text-gray-400 hover:text-gray-600 transition-colors p-2" title="上传图片">
+                    <label className="cursor-pointer flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors" title="上传图片">
                       <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageUpload} />
-                      <ImageIcon size={24} />
+                      <ImageIcon size={20} />
+                      <span className="text-sm font-bold">添加图片</span>
                     </label>
                   </div>
 
