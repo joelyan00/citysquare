@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
-import { ForumPost, Comment } from '../types';
-import { ForumDatabase, ForumCrawler } from '../services/geminiService';
-import { MessageCircle, Heart, Clock, Zap, Hash, Flame, HelpCircle, ChevronDown, ChevronUp, Plus, Send, UserPlus, UserMinus, Users, Image, Video, Mic, Wand2, X } from 'lucide-react';
+import { ForumPost, Comment, UserRole } from '../types';
+import { ForumDatabase, ForumCrawler, AdminDatabase } from '../services/geminiService';
+import { MessageSquare, Heart, Send, Hash, X, UserPlus, UserMinus, Zap, Image as ImageIcon, Video, Clock, Trash2, Plus, ChevronDown, ChevronUp, MessageCircle, Wand2 } from 'lucide-react';
 import { polishText } from '../services/geminiService';
 
 import { ViewState } from '../types';
@@ -168,7 +167,7 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
       }
 
       const newPost: ForumPost = {
-        id: `user-post-${Date.now()}`,
+        id: `user - post - ${Date.now()} `,
         title: newPostTitle,
         content: newPostContent,
         author: user.email?.split('@')[0] || '匿名用户',
@@ -260,7 +259,7 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
     setSubmittingComment(true);
     try {
       const newComment: Comment = {
-        id: `c-${Date.now()}`,
+        id: `c - ${Date.now()} `,
         author: user.email?.split('@')[0] || '匿名用户',
         content: newCommentContent,
         timestamp: Date.now(),
@@ -335,10 +334,10 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap shadow-sm ${activeTab === tab.id
-                    ? 'bg-indigo-600 text-white shadow-indigo-200'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
+                className={`px - 6 py - 2.5 rounded - full text - sm font - bold transition - all whitespace - nowrap shadow - sm ${activeTab === tab.id
+                  ? 'bg-indigo-600 text-white shadow-indigo-200'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  } `}
               >
                 {tab.label}
               </button>
@@ -372,10 +371,10 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
                     {user && post.author !== (user.email?.split('@')[0]) && (
                       <button
                         onClick={(e) => followedNames.includes(post.author) ? handleUnfollow(post.author, e) : handleFollow(post.author, e)}
-                        className={`text-xs font-bold px-3 py-1 rounded-full flex items-center transition-colors ${followedNames.includes(post.author)
+                        className={`text - xs font - bold px - 3 py - 1 rounded - full flex items - center transition - colors ${followedNames.includes(post.author)
                           ? 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                           : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm'
-                          }`}
+                          } `}
                       >
                         {followedNames.includes(post.author) ? (
                           <>
@@ -403,19 +402,37 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
                     )}
                   </div>
 
-                  {/* Right Side: Timestamp Only */}
-                  <div className="flex flex-col items-end ml-2">
+                  {/* Right Side: Timestamp & Delete */}
+                  <div className="flex flex-col items-end ml-2 gap-2">
                     <span className="text-xs font-bold text-gray-400 flex items-center whitespace-nowrap">
                       <Clock size={14} className="mr-1" />
                       {Math.floor((Date.now() - post.timestamp) / 60000)}分钟前
                     </span>
+
+                    {/* Admin Delete Button */}
+                    {user?.role === UserRole.ADMIN && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (confirm('确定要删除这条帖子吗？')) {
+                            AdminDatabase.deletePost(post.id).then(() => {
+                              setPosts(prev => prev.filter(p => p.id !== post.id));
+                            });
+                          }
+                        }}
+                        className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors"
+                        title="管理员删除"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
                   </div>
                 </div>
 
                 <h3 className="text-2xl md:text-3xl font-black text-gray-900 mb-4 leading-tight tracking-tight">{post.title}</h3>
 
                 {/* Content with conditional truncation */}
-                <div className={`text-gray-800 text-lg md:text-xl font-medium leading-relaxed mb-6 whitespace-pre-wrap ${isExpanded ? '' : 'line-clamp-4'}`}>
+                <div className={`text - gray - 800 text - lg md: text - xl font - medium leading - relaxed mb - 6 whitespace - pre - wrap ${isExpanded ? '' : 'line-clamp-4'} `}>
                   {post.videoUrl ? post.content.replace(post.videoUrl, '').trim() : post.content}
                 </div>
 
@@ -432,7 +449,7 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         allowFullScreen
                         className="w-full aspect-video"
-                      ></iframe>
+                      ></iframe >
                     ) : post.videoUrl.includes('bilibili.com') ? (
                       <iframe
                         width="100%"
@@ -448,22 +465,24 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
                         <Video size={20} className="mr-2" /> 观看视频
                       </a>
                     )}
-                  </div>
+                  </div >
                 )}
 
                 {/* Image Grid */}
-                {post.images && post.images.length > 0 && (
-                  <div className={`grid gap-2 mb-6 ${post.images.length === 1 ? 'grid-cols-1' : 'grid-cols-2 md:grid-cols-3'}`}>
-                    {post.images.map((img, idx) => (
-                      <img
-                        key={idx}
-                        src={img}
-                        alt={`Post image ${idx + 1}`}
-                        className={`rounded-xl object-cover w-full h-full ${post.images!.length === 1 ? 'max-h-96' : 'aspect-square'}`}
-                      />
-                    ))}
-                  </div>
-                )}
+                {
+                  post.images && post.images.length > 0 && (
+                    <div className={`grid gap-2 mb-6 ${post.images.length === 1 ? 'grid-cols-1' : 'grid-cols-2 md:grid-cols-3'}`}>
+                      {post.images.map((img, idx) => (
+                        <img
+                          key={idx}
+                          src={img}
+                          alt={`Post image ${idx + 1}`}
+                          className={`rounded-xl object-cover w-full h-full ${post.images!.length === 1 ? 'max-h-96' : 'aspect-square'}`}
+                        />
+                      ))}
+                    </div>
+                  )
+                }
 
                 <div className="flex items-center justify-between text-gray-500 border-t border-gray-100 pt-5">
                   <div className="flex items-center space-x-6">
@@ -496,56 +515,60 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
                 </div>
 
                 {/* Comments Section */}
-                {expandedCommentPostId === post.id && (
-                  <div className="mt-6 pt-6 border-t border-gray-100 animate-[fadeIn_0.2s]" onClick={e => e.stopPropagation()}>
-                    <h4 className="font-bold text-gray-900 mb-4">评论 ({post.comments})</h4>
+                {
+                  expandedCommentPostId === post.id && (
+                    <div className="mt-6 pt-6 border-t border-gray-100 animate-[fadeIn_0.2s]" onClick={e => e.stopPropagation()}>
+                      <h4 className="font-bold text-gray-900 mb-4">评论 ({post.comments})</h4>
 
-                    {/* Comment List */}
-                    <div className="space-y-4 mb-6 max-h-60 overflow-y-auto">
-                      {post.commentsList?.map(comment => (
-                        <div key={comment.id} className="bg-gray-50 p-3 rounded-xl">
-                          <div className="flex justify-between items-start mb-1">
-                            <span className="font-bold text-sm text-gray-900">@{comment.author}</span>
-                            <span className="text-xs text-gray-400">{Math.floor((Date.now() - comment.timestamp) / 60000)}分钟前</span>
+                      {/* Comment List */}
+                      <div className="space-y-4 mb-6 max-h-60 overflow-y-auto">
+                        {post.commentsList?.map(comment => (
+                          <div key={comment.id} className="bg-gray-50 p-3 rounded-xl">
+                            <div className="flex justify-between items-start mb-1">
+                              <span className="font-bold text-sm text-gray-900">@{comment.author}</span>
+                              <span className="text-xs text-gray-400">{Math.floor((Date.now() - comment.timestamp) / 60000)}分钟前</span>
+                            </div>
+                            <p className="text-gray-700 text-sm">{comment.content}</p>
                           </div>
-                          <p className="text-gray-700 text-sm">{comment.content}</p>
-                        </div>
-                      ))}
-                      {(!post.commentsList || post.commentsList.length === 0) && (
-                        <p className="text-gray-400 text-sm text-center py-2">暂无评论，快来抢沙发吧！</p>
-                      )}
-                    </div>
+                        ))}
+                        {(!post.commentsList || post.commentsList.length === 0) && (
+                          <p className="text-gray-400 text-sm text-center py-2">暂无评论，快来抢沙发吧！</p>
+                        )}
+                      </div>
 
-                    {/* Add Comment Form */}
-                    <form onSubmit={(e) => handleSubmitComment(post.id, e)} className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="写下你的评论..."
-                        value={newCommentContent}
-                        onChange={e => setNewCommentContent(e.target.value)}
-                        className="flex-1 bg-gray-100 border-transparent focus:bg-white focus:border-indigo-500 rounded-full px-4 py-2 text-sm outline-none transition-all"
-                      />
-                      <button
-                        type="submit"
-                        disabled={submittingComment || !newCommentContent.trim()}
-                        className="bg-indigo-600 text-white p-2 rounded-full hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-                      >
-                        <Send size={16} />
-                      </button>
-                    </form>
-                  </div>
-                )}
-              </div>
+                      {/* Add Comment Form */}
+                      <form onSubmit={(e) => handleSubmitComment(post.id, e)} className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="写下你的评论..."
+                          value={newCommentContent}
+                          onChange={e => setNewCommentContent(e.target.value)}
+                          className="flex-1 bg-gray-100 border-transparent focus:bg-white focus:border-indigo-500 rounded-full px-4 py-2 text-sm outline-none transition-all"
+                        />
+                        <button
+                          type="submit"
+                          disabled={submittingComment || !newCommentContent.trim()}
+                          className="bg-indigo-600 text-white p-2 rounded-full hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                        >
+                          <Send size={16} />
+                        </button>
+                      </form>
+                    </div>
+                  )
+                }
+              </div >
             )
           })}
-          {!loading && filteredPosts.length === 0 && (
-            <div className="text-center py-12 text-gray-400">
-              <p className="font-bold text-lg">暂无帖子</p>
-              <p className="text-sm">等待系统自动生成中...</p>
-            </div>
-          )}
-        </div>
-      </div>
+          {
+            !loading && filteredPosts.length === 0 && (
+              <div className="text-center py-12 text-gray-400">
+                <p className="font-bold text-lg">暂无帖子</p>
+                <p className="text-sm">等待系统自动生成中...</p>
+              </div>
+            )
+          }
+        </div >
+      </div >
 
       {/* Create Post Modal */}
       {
