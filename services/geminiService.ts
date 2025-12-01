@@ -253,7 +253,7 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
     keywords += ", CNN, BBC, Reuters, AP News";
   }
 
-  const systemInstruction = `You are a professional journalist for "CitySquare".
+  const systemInstruction = `You are a professional journalist for "City666".
   Your task is to search for real-time news about "${topic}".
   Time Window: Past ${timeWindow}.
   Article Count: Try to find ${articleCount} items.
@@ -579,7 +579,7 @@ export const generateTrendingTopic = async (): Promise<ForumPost | null> => {
   const selectedCat = categories[Math.floor(Math.random() * categories.length)] || "社会热点";
   const selectedType = qTypes[Math.floor(Math.random() * qTypes.length)] || "理性讨论";
 
-  console.log(`[CitySquare Forum] Generating topic: Cat="${selectedCat}", Style="${selectedType}"`);
+  console.log(`[City666 Forum] Generating topic: Cat="${selectedCat}", Style="${selectedType}"`);
 
   try {
     const response = await generateWithRetry("gemini-2.5-flash", {
@@ -589,7 +589,7 @@ export const generateTrendingTopic = async (): Promise<ForumPost | null> => {
       Keywords: ${config.forum.topicKeywords}.
       Language: Chinese (Simplified).`,
       config: {
-        systemInstruction: "You are 'CitySquare 话题君', a community manager. Generate a simplified JSON object.",
+        systemInstruction: "You are 'City666 话题君', a community manager. Generate a simplified JSON object.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -609,7 +609,7 @@ export const generateTrendingTopic = async (): Promise<ForumPost | null> => {
       id: `topic-${Date.now()}`,
       title: item.title,
       content: item.content,
-      author: "CitySquare 话题君",
+      author: "City666 话题君",
       likes: Math.floor(Math.random() * 50) + 10,
       comments: Math.floor(Math.random() * 20),
       timestamp: Date.now(),
