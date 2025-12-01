@@ -8,14 +8,14 @@ const DEFAULT_CONFIG: AppConfig = {
     globalArticleCount: 8,
     localTimeWindow: '48 hours',
     globalTimeWindow: '7 days',
-    extraKeywords: 'Sports, Military, Technology, Heartwarming stories',
+    extraKeywords: 'Sports, Military, Technology, Heartwarming stories, Science, Health, Education',
 
     // Default Refresh Intervals (minutes)
     localRefreshInterval: 720, // 12 hours
-    canadaRefreshInterval: 120, // 2 hours
-    usaRefreshInterval: 120,    // 2 hours
+    canadaRefreshInterval: 240, // 4 hours
+    usaRefreshInterval: 240,    // 4 hours
     chinaRefreshInterval: 720,  // 12 hours
-    intlRefreshInterval: 120,   // 2 hours
+    intlRefreshInterval: 240,   // 4 hours
 
     // Default Retention Limits
     localRetentionLimit: 50,
@@ -27,7 +27,7 @@ const DEFAULT_CONFIG: AppConfig = {
     // Default values for new regional settings
     usaArticleCount: 10,
     usaTimeWindow: '24 hours',
-    usaKeywords: 'Politics, Tech, Wall Street, Hollywood',
+    usaKeywords: 'Politics, Tech, Wall Street, Hollywood, Silicon Valley, NASA',
 
     canadaArticleCount: 10,
     canadaTimeWindow: '24 hours',

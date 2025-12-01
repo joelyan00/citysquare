@@ -215,6 +215,15 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
     }
   }
 
+  // Add Authoritative Sources to Keywords
+  if (category === NewsCategory.CANADA) {
+    keywords += ", CTV News, CBC, Global News, CP24";
+  } else if (category === NewsCategory.USA) {
+    keywords += ", CNN, NBC News, New York Times, Washington Post";
+  } else if (category === NewsCategory.INTERNATIONAL) {
+    keywords += ", CNN, BBC, Reuters, AP News";
+  }
+
   const systemInstruction = `You are a professional journalist for "CitySquare".
   Your task is to search for real-time news about "${topic}".
   Time Window: Past ${timeWindow}.
@@ -228,6 +237,12 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
   - Do NOT include general national news (e.g. Federal Customs, National Holidays) unless it specifically mentions "${topic}".
   - Do NOT include international news.
   - If you cannot find enough specific local news, return fewer items. Quality > Quantity.
+
+  AUTHORITATIVE SOURCES PRIORITY:
+  - For Canada: Prioritize CTV, CBC, Global News.
+  - For USA: Prioritize CNN, NBC, NYT.
+  - For International: Prioritize CNN, BBC, Reuters.
+  - Always try to find the original report from these major outlets.
 
   Step 1: SEARCH for trending news URLs first.
   Step 2: SELECT unique, diverse stories (Sports, Politics, Tech, Heartwarming, Official Notices).
