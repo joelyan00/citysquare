@@ -117,7 +117,7 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
 
   const handleTriggerForum = async () => {
     setLoading(true);
-    showStatus('正在生成 CitySquare 话题...');
+    showStatus('正在生成 City666 话题...');
     const result = await generateTrendingTopic();
     await loadSyncStatus(); // Update status
     setLoading(false);

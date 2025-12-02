@@ -42,12 +42,12 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onNavigate, city = '本地', 
 
   if (!user) {
     return (
-      <div className="bg-white min-h-full flex flex-col items-center justify-center p-8">
-        <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-          <User size={48} className="text-gray-400" />
+      <div className="bg-white dark:bg-gray-900 min-h-full flex flex-col items-center justify-center p-8 transition-colors duration-300">
+        <div className="w-24 h-24 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-6">
+          <User size={48} className="text-gray-400 dark:text-gray-500" />
         </div>
-        <h2 className="text-2xl font-black text-gray-900 mb-2">欢迎来到 CitySquare</h2>
-        <p className="text-gray-500 text-center mb-8">登录以发布内容、参与讨论并享受更多服务</p>
+        <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">欢迎来到 City666</h2>
+        <p className="text-gray-500 dark:text-gray-400 text-center mb-8">登录以发布内容、参与讨论并享受更多服务</p>
 
         <button
           onClick={() => onNavigate && onNavigate(ViewState.LOGIN)}
@@ -126,162 +126,168 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onNavigate, city = '本地', 
   }
 
   return (
-    <div className="bg-gray-50 min-h-full">
-      <div className="max-w-4xl mx-auto bg-white min-h-full shadow-2xl overflow-hidden min-h-screen">
-        <div className="bg-gradient-to-br from-violet-600 to-indigo-600 text-white p-8 pt-14 rounded-b-[3rem] shadow-xl shadow-indigo-500/20">
-          <div className="flex items-center space-x-5">
-            {user.avatar ? (
-              <img
-                src={user.avatar}
-                alt="User"
-                className="w-24 h-24 rounded-full border-[5px] border-white/30 shadow-sm object-cover"
-              />
-            ) : (
-              <div className="w-24 h-24 rounded-full border-[5px] border-white/30 shadow-sm bg-white/20 flex items-center justify-center text-3xl font-bold">
-                {user.name[0]?.toUpperCase()}
-              </div>
-            )}
-            <div>
-              <h1 className="text-3xl font-black tracking-tight">{user.name}</h1>
-              <p className="text-indigo-100 text-base font-bold mt-1">{city} • {user.role === UserRole.SERVICE_PROVIDER ? '服务商' : '普通用户'}</p>
-              <div className="mt-3 flex space-x-4 text-sm font-bold text-indigo-50">
-                <span className="bg-white/10 px-3 py-1 rounded-full">ID: {user.id.slice(0, 6)}</span>
-              </div>
+    <div className="bg-gray-50 dark:bg-gray-900 min-h-full pb-10 transition-colors duration-300">
+      {/* Profile Header */}
+      <div className="bg-white dark:bg-gray-800 pb-8 pt-12 px-6 rounded-b-[2.5rem] shadow-sm mb-6 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-violet-600 to-indigo-600 opacity-10 dark:opacity-20"></div>
+        <div className="relative z-10 flex flex-col items-center">
+          <div className="w-28 h-28 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 p-1 shadow-xl mb-4">
+            <div className="w-full h-full rounded-full bg-white dark:bg-gray-800 flex items-center justify-center overflow-hidden border-4 border-white dark:border-gray-800">
+              {user.avatar ? (
+                <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-4xl font-black text-brand-600 dark:text-brand-400">
+                  {user.name ? user.name.slice(0, 2).toUpperCase() : user.email.slice(0, 2).toUpperCase()}
+                </span>
+              )}
             </div>
           </div>
+          <h1 className="text-2xl font-black text-gray-900 dark:text-white mb-1">{user.name || 'User'}</h1>
+          <p className="text-gray-500 dark:text-gray-400 font-medium text-sm mb-4">{user.email}</p>
+          <div className="flex items-center gap-2 mt-2">
+            <span className="bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 px-3 py-1 rounded-lg text-xs font-bold border border-brand-100 dark:border-brand-900/50">
+              {user.role === UserRole.ADMIN ? '管理员' : '普通用户'}
+            </span>
+            <span className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-3 py-1 rounded-lg text-xs font-bold">
+              {city}
+            </span>
+          </div>
         </div>
+      </div>
 
-        <div className="p-6 -mt-2">
-          {/* Ad Banner / Create Ad Button */}
-          <button
-            onClick={() => onNavigate && onNavigate(ViewState.CREATE_AD)}
-            className="w-full bg-gradient-to-r from-orange-400 to-pink-500 text-white p-4 rounded-2xl shadow-lg mb-6 flex items-center justify-between active:scale-95 transition-transform"
-          >
-            <div className="flex items-center">
-              <div className="bg-white/20 p-2 rounded-xl mr-3">
-                <Megaphone size={24} strokeWidth={2.5} />
-              </div>
-              <div className="text-left">
-                <h3 className="font-black text-lg">发布广告 / 推广</h3>
-                <p className="text-xs font-bold text-white/90">CitySquare 智能营销助手为您服务</p>
-              </div>
+      <div className="p-6 -mt-2">
+        {/* Ad Banner / Create Ad Button */}
+        <button
+          onClick={() => onNavigate && onNavigate(ViewState.CREATE_AD)}
+          className="w-full bg-gradient-to-r from-brand-500 to-violet-600 text-white p-4 rounded-2xl shadow-lg shadow-brand-500/20 mb-3 flex items-center justify-between active:scale-95 transition-transform relative overflow-hidden group"
+        >
+          <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          <div className="flex items-center relative z-10">
+            <div className="bg-white/20 p-2 rounded-xl mr-3 backdrop-blur-sm">
+              <Megaphone size={24} strokeWidth={2.5} />
             </div>
-            <div className="bg-white text-orange-600 text-xs font-black px-3 py-1.5 rounded-full">
-              去发布
+            <div className="text-left">
+              <h3 className="font-black text-lg">发布广告 / 推广</h3>
+              <p className="text-xs font-bold text-white/90">City666 智能营销助手为您服务</p>
             </div>
-          </button>
+          </div>
+          <div className="bg-white text-brand-600 text-xs font-black px-3 py-1.5 rounded-lg relative z-10 shadow-sm">
+            去发布
+          </div>
+        </button>
 
-          <div className="bg-white rounded-3xl shadow-lg border border-gray-50 p-3 space-y-2">
+        {/* Menu Grid */}
+        <div className="px-4 max-w-lg mx-auto space-y-4">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl p-2 shadow-sm">
             {[
-              { icon: Bell, label: '消息通知', badge: '3' },
-              { icon: Heart, label: '我的收藏', badge: '' },
-              { icon: Shield, label: '账号安全 (邮箱/密码)', badge: '' },
-              { icon: CreditCard, label: '支付方式', badge: '' },
-              { icon: Settings, label: '系统设置', badge: '' },
-            ].map((item, idx) => (
+              { icon: Bell, label: '消息通知', badge: 2, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+              { icon: Heart, label: '我的收藏', color: 'text-rose-500', bg: 'bg-rose-50 dark:bg-rose-900/20' },
+              { icon: Settings, label: '系统设置', color: 'text-gray-600 dark:text-gray-400', bg: 'bg-gray-100 dark:bg-gray-700' }
+            ].map((item) => (
               <button
-                key={idx}
+                key={item.label}
                 onClick={() => handleAction(item.label)}
-                className="w-full flex items-center justify-between p-5 hover:bg-gray-50 rounded-2xl transition-colors group active:scale-[0.98]"
+                className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-2xl transition-colors group"
               >
-                <div className="flex items-center space-x-4">
-                  <div className="p-3 bg-gray-100 text-gray-500 rounded-xl group-hover:bg-brand-50 group-hover:text-brand-600 transition-colors">
-                    <item.icon size={24} strokeWidth={2.5} />
+                <div className="flex items-center gap-4">
+                  <div className={`w-10 h-10 rounded-xl ${item.bg} ${item.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                    <item.icon size={20} strokeWidth={2.5} />
                   </div>
-                  <span className="text-lg font-bold text-gray-800">{item.label}</span>
+                  <span className="font-bold text-gray-900 dark:text-white">{item.label}</span>
                 </div>
                 {item.badge && (
-                  <span className="bg-red-500 text-white text-xs font-black px-2.5 py-1 rounded-full shadow-sm shadow-red-200">
-                    {item.badge}
-                  </span>
+                  <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-lg">{item.badge}</span>
                 )}
               </button>
             ))}
           </div>
-
-          <button
-            onClick={handleLogout}
-            className="w-full mt-8 flex items-center justify-center space-x-2 p-5 text-red-500 font-bold text-lg bg-red-50 rounded-2xl hover:bg-red-100 transition-colors active:scale-95"
-          >
-            <LogOut size={22} strokeWidth={3} />
-            <span>退出登录</span>
-          </button>
-
-          {/* Hidden Admin Entry - Only for specific admin email */}
-          {user?.email === 'joelyan00@gmail.com' && (
-            <button
-              onClick={() => setShowAdminLogin(true)}
-              className="w-full mt-4 text-gray-300 text-xs font-bold flex justify-center items-center py-4 hover:text-brand-500 transition-colors"
-            >
-              <Wrench size={12} className="mr-1" /> 管理员后台
-            </button>
-          )}
-
-          <div className="mt-2 text-center pb-20">
-            <p className="text-xs font-bold text-gray-300 tracking-widest uppercase">City Square v1.0.0</p>
-          </div>
         </div>
 
-        {/* Admin Login Modal */}
-        {showAdminLogin && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-6 animate-[fadeIn_0.2s]">
-            <div className="bg-white w-full max-w-sm rounded-3xl p-8 relative shadow-2xl">
-              <button
-                onClick={() => setShowAdminLogin(false)}
-                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-2"
-              >
-                <X size={24} />
-              </button>
+        <button
+          onClick={handleLogout}
+          className="w-full bg-white dark:bg-gray-800 text-red-500 font-black py-4 rounded-3xl shadow-sm hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center justify-center gap-2 mt-6"
+        >
+          <LogOut size={20} strokeWidth={2.5} />
+          退出登录
+        </button>
 
-              <div className="text-center mb-6">
-                <div className="bg-brand-50 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 text-brand-600">
-                  <Lock size={32} strokeWidth={2.5} />
-                </div>
-                <h2 className="text-2xl font-black text-gray-900">后台登录</h2>
-                <p className="text-gray-500 text-sm font-bold mt-1">仅限管理员访问</p>
+        {/* Hidden Admin Entry - Only for specific admin email */}
+        {user?.email === 'joelyan00@gmail.com' && (
+          <button
+            onClick={() => setShowAdminLogin(true)}
+            className="w-full mt-4 text-gray-300 text-xs font-bold flex justify-center items-center py-4 hover:text-brand-500 transition-colors"
+          >
+            <Wrench size={12} className="mr-1" /> 管理员后台
+          </button>
+        )}
+
+        <div className="mt-2 text-center pb-20">
+          <p className="text-xs font-bold text-gray-300 tracking-widest uppercase">City Square v1.0.0</p>
+        </div>
+      </div>
+
+
+
+      {/* Admin Login Modal */}
+      {showAdminLogin && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-6 animate-[fadeIn_0.2s]">
+          <div className="bg-white w-full max-w-sm rounded-3xl p-8 relative shadow-2xl">
+            <button
+              onClick={() => setShowAdminLogin(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-2"
+            >
+              <X size={24} />
+            </button>
+
+            <div className="text-center mb-6">
+              <div className="bg-brand-50 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 text-brand-600">
+                <Lock size={32} strokeWidth={2.5} />
+              </div>
+              <h2 className="text-2xl font-black text-gray-900">后台登录</h2>
+              <p className="text-gray-500 text-sm font-bold mt-1">仅限管理员访问</p>
+            </div>
+
+            <form onSubmit={handleAdminLogin} className="space-y-4">
+              <div>
+                <input
+                  type="text"
+                  placeholder="账号"
+                  value={adminUsername}
+                  onChange={e => setAdminUsername(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 font-bold text-gray-800 focus:ring-2 focus:ring-brand-500 outline-none transition-all"
+                />
+              </div>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="密码"
+                  value={adminPassword}
+                  onChange={e => setAdminPassword(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 font-bold text-gray-800 focus:ring-2 focus:ring-brand-500 outline-none transition-all pr-12"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
               </div>
 
-              <form onSubmit={handleAdminLogin} className="space-y-4">
-                <div>
-                  <input
-                    type="text"
-                    placeholder="账号"
-                    value={adminUsername}
-                    onChange={e => setAdminUsername(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 font-bold text-gray-800 focus:ring-2 focus:ring-brand-500 outline-none transition-all"
-                  />
-                </div>
-                <div className="relative">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    placeholder="密码"
-                    value={adminPassword}
-                    onChange={e => setAdminPassword(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 font-bold text-gray-800 focus:ring-2 focus:ring-brand-500 outline-none transition-all pr-12"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
-                </div>
+              {adminError && <p className="text-red-500 text-xs font-bold text-center">{adminError}</p>}
 
-                {adminError && <p className="text-red-500 text-xs font-bold text-center">{adminError}</p>}
-
-                <button
-                  type="submit"
-                  className="w-full bg-brand-600 text-white font-black py-4 rounded-xl shadow-lg shadow-brand-500/30 active:scale-95 transition-transform"
-                >
-                  进入后台
-                </button>
-              </form>
-            </div>
+              <button
+                type="submit"
+                className="w-full bg-brand-600 text-white font-black py-4 rounded-xl shadow-lg shadow-brand-500/30 active:scale-95 transition-transform"
+              >
+                进入后台
+              </button>
+            </form>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
+
   );
 };
 

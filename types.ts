@@ -8,7 +8,8 @@ export enum ViewState {
   CREATE_AD = 'CREATE_AD',
   ADMIN = 'ADMIN',
   LOGIN = 'LOGIN',
-  REGISTER = 'REGISTER'
+  REGISTER = 'REGISTER',
+  AD_DETAIL = 'AD_DETAIL'
 }
 
 export enum UserRole {
@@ -28,7 +29,15 @@ export enum NewsCategory {
   CANADA = 'Canada',
   USA = 'USA',
   INTERNATIONAL = 'International',
-  CHINA = 'China'
+  CHINA = 'China',
+  GTA = 'GTA',
+  VANCOUVER = 'Vancouver',
+  MONTREAL = 'Montreal',
+  CALGARY = 'Calgary',
+  EDMONTON = 'Edmonton',
+  WATERLOO = 'Waterloo',
+  WINDSOR = 'Windsor',
+  LONDON = 'London'
 }
 
 export interface NewsItem {

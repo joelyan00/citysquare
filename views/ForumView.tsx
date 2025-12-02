@@ -1,18 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { ForumPost, Comment, UserRole } from '../types';
-import { ForumDatabase, ForumCrawler, AdminDatabase, uploadImageToImgur } from '../services/geminiService';
-import { MessageSquare, Heart, Send, Hash, X, UserPlus, UserMinus, Zap, Image as ImageIcon, Video, Clock, Trash2, Plus, ChevronDown, ChevronUp, MessageCircle, Wand2 } from 'lucide-react';
-import { polishText } from '../services/geminiService';
-
 import { ViewState } from '../types';
 import { supabase } from '../services/supabaseClient';
+import {
+  MessageCircle, Heart, Share2, MoreHorizontal, Image as ImageIcon, X,
+  Send, Trash2, Video, ChevronDown, ChevronUp, UserPlus, UserMinus,
+  Hash, Zap, Clock, Wand2, Link, Aperture, BookOpen, Sun, Moon, Plus
+} from 'lucide-react';
+import { ForumDatabase, ForumCrawler, AdminDatabase, uploadImageToSupabase, polishText } from '../services/geminiService';
+
 
 interface ForumViewProps {
   city?: string;
   onNavigate?: (view: ViewState) => void;
+  isDarkMode?: boolean;
+  toggleTheme?: () => void;
 }
 
-const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
+const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate, isDarkMode, toggleTheme }) => {
   const [posts, setPosts] = useState<ForumPost[]>([]);
   const [activeTab, setActiveTab] = useState<'following' | 'trending' | 'latest' | 'mine'>('trending');
   const [loading, setLoading] = useState(true);
@@ -22,6 +27,7 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newPostTitle, setNewPostTitle] = useState('');
   const [newPostContent, setNewPostContent] = useState('');
+  const [newPostTags, setNewPostTags] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Comment State
@@ -35,22 +41,34 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
   const [showVideoInput, setShowVideoInput] = useState(false);
   const [isPolishing, setIsPolishing] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [showShareModal, setShowShareModal] = useState<string | null>(null);
+
 
   // Comment Media State
   const [newCommentImages, setNewCommentImages] = useState<string[]>([]);
+  const [isPolishingComment, setIsPolishingComment] = useState(false);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    // Upload to Imgur
+    // Upload to Supabase
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      // Show a temporary placeholder or loading state could be better, but for now we just append the result
       try {
-        const imgurLink = await uploadImageToImgur(file);
-        if (imgurLink) {
-          setNewPostImages(prev => [...prev, imgurLink]);
+        // Convert to Base64
+        const reader = new FileReader();
+        const base64Promise = new Promise<string>((resolve) => {
+          reader.onload = (e) => resolve(e.target?.result as string);
+          reader.readAsDataURL(file);
+        });
+        const base64 = await base64Promise;
+
+        const filename = `forum/${Date.now()}_${i}_${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
+        const supabaseUrl = await uploadImageToSupabase(base64, filename);
+
+        if (supabaseUrl) {
+          setNewPostImages(prev => [...prev, supabaseUrl]);
         } else {
           alert('图片上传失败，请重试');
         }
@@ -68,9 +86,19 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       try {
-        const imgurLink = await uploadImageToImgur(file);
-        if (imgurLink) {
-          setNewCommentImages(prev => [...prev, imgurLink]);
+        // Convert to Base64
+        const reader = new FileReader();
+        const base64Promise = new Promise<string>((resolve) => {
+          reader.onload = (e) => resolve(e.target?.result as string);
+          reader.readAsDataURL(file);
+        });
+        const base64 = await base64Promise;
+
+        const filename = `forum_comments/${Date.now()}_${i}_${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
+        const supabaseUrl = await uploadImageToSupabase(base64, filename);
+
+        if (supabaseUrl) {
+          setNewCommentImages(prev => [...prev, supabaseUrl]);
         } else {
           alert('评论图片上传失败');
         }
@@ -91,6 +119,20 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
       console.error("Polish failed", error);
     } finally {
       setIsPolishing(false);
+    }
+  };
+
+  const handleCommentPolish = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!newCommentContent.trim()) return;
+    setIsPolishingComment(true);
+    try {
+      const polished = await polishText(newCommentContent);
+      setNewCommentContent(polished);
+    } catch (error) {
+      console.error("Polish failed", error);
+    } finally {
+      setIsPolishingComment(false);
     }
   };
 
@@ -327,12 +369,21 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
       : [...posts].sort((a, b) => b.timestamp - a.timestamp);
 
   return (
-    <div className="bg-gray-50 min-h-full pb-6">
-      <header className="bg-white sticky top-0 z-30 shadow-sm pt-4 pb-2">
+    <div className="bg-gray-50 dark:bg-gray-900 min-h-full pb-6 transition-colors duration-300">
+      <header className="bg-white dark:bg-gray-800 sticky top-0 z-30 shadow-sm pt-4 pb-2 transition-all">
         <div className="max-w-4xl mx-auto px-4">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-black text-gray-900 tracking-tight">社区论坛</h2>
+            <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">社区论坛</h2>
             <div className="flex items-center gap-3">
+              {/* Theme Toggle */}
+              {toggleTheme && (
+                <button
+                  onClick={toggleTheme}
+                  className="p-2 rounded-2xl bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+                </button>
+              )}
               {user ? (
                 <div className="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-sm border-2 border-white shadow-sm">
                   {user.email?.substring(0, 2).toUpperCase()}
@@ -344,7 +395,7 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
               )}
               <button
                 onClick={handleCreatePostClick}
-                className="bg-indigo-600 text-white px-4 py-2 rounded-full font-bold shadow-lg shadow-indigo-200 active:scale-95 transition-all flex items-center"
+                className="bg-indigo-600 text-white px-4 py-2 rounded-2xl font-bold shadow-lg shadow-indigo-200 active:scale-95 transition-all flex items-center"
               >
                 <Plus size={18} className="mr-1" strokeWidth={3} /> 发帖
               </button>
@@ -362,9 +413,9 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`px - 6 py - 2.5 rounded - full text - sm font - bold transition - all whitespace - nowrap shadow - sm ${activeTab === tab.id
+                className={`px - 6 py - 2.5 rounded - 2xl text - sm font - bold transition - all whitespace - nowrap shadow - sm ${activeTab === tab.id
                   ? 'bg-indigo-600 text-white shadow-indigo-200'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                   } `}
               >
                 {tab.label}
@@ -385,13 +436,13 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
             return (
               <div
                 key={post.id}
-                className="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-gray-100 active:bg-gray-50 transition-colors"
+                className="bg-white dark:bg-gray-800 p-6 md:p-8 rounded-[2rem] shadow-sm border border-gray-100 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700 transition-colors"
                 onClick={(e) => toggleExpand(post.id, e)}
               >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3 mb-2 flex-wrap">
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-center gap-3">
                     {/* Author Name */}
-                    <span className="text-base font-black text-gray-900">
+                    <span className="text-base font-black text-gray-900 dark:text-white">
                       @{post.author}
                     </span>
 
@@ -399,7 +450,7 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
                     {user && post.author !== (user.email?.split('@')[0]) && (
                       <button
                         onClick={(e) => followedNames.includes(post.author) ? handleUnfollow(post.author, e) : handleFollow(post.author, e)}
-                        className={`text-xs font-bold px-3 py-1 rounded-full flex items-center transition-all ${followedNames.includes(post.author)
+                        className={`text-xs font-bold px-3 py-1 rounded-lg flex items-center transition-all ${followedNames.includes(post.author)
                           ? 'bg-gray-100 text-gray-400 hover:bg-gray-200'
                           : 'border border-indigo-600 text-indigo-600 bg-transparent hover:bg-indigo-50'
                           } `}
@@ -415,25 +466,6 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
                         )}
                       </button>
                     )}
-
-                    {/* Other Tags (excluding '用户发布') */}
-                    {post.tags.filter(t => t !== '用户发布').map(tag => (
-                      <span key={tag} className="text-xs font-bold bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg flex items-center">
-                        <Hash size={12} className="mr-0.5" strokeWidth={3} /> {tag}
-                      </span>
-                    ))}
-
-                    {post.images && post.images.length > 0 && (
-                      <span className="text-xs font-bold bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg border border-blue-100 flex items-center">
-                        <ImageIcon size={12} className="mr-0.5" /> {post.images.length}图
-                      </span>
-                    )}
-
-                    {post.isAiGenerated && (
-                      <span className="text-xs font-bold bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg border border-indigo-100 flex items-center">
-                        <Zap size={12} className="mr-0.5 fill-current" /> 话题
-                      </span>
-                    )}
                   </div>
 
                   {/* Right Side: Timestamp & Delete */}
@@ -443,19 +475,19 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
                       {Math.floor((Date.now() - post.timestamp) / 60000)}分钟前
                     </span>
 
-                    {/* Admin Delete Button */}
-                    {user?.role === UserRole.ADMIN && (
+                    {/* Delete Button (Admin or Author) */}
+                    {(user?.role === UserRole.ADMIN || (user?.email && user.email.split('@')[0] === post.author)) && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           if (confirm('确定要删除这条帖子吗？')) {
-                            AdminDatabase.deletePost(post.id).then(() => {
+                            ForumDatabase.deletePost(post.id).then(() => {
                               setPosts(prev => prev.filter(p => p.id !== post.id));
                             });
                           }
                         }}
                         className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors"
-                        title="管理员删除"
+                        title="删除帖子"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -463,14 +495,36 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
                   </div>
                 </div>
 
-                <h3 className="text-2xl md:text-3xl font-black text-gray-900 mb-4 leading-tight tracking-tight">{post.title}</h3>
+                {/* Tags Row */}
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {/* Other Tags (excluding '用户发布') */}
+                  {post.tags.filter(t => t !== '用户发布').map(tag => (
+                    <span key={tag} className="text-xs font-bold bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg flex items-center">
+                      <Hash size={12} className="mr-0.5" strokeWidth={3} /> {tag}
+                    </span>
+                  ))}
 
-                {/* Content with conditional truncation */}
-                <div className={`text - gray - 800 text - lg md: text - xl font - medium leading - relaxed mb - 6 whitespace - pre - wrap ${isExpanded ? '' : 'line-clamp-4'} `}>
-                  {post.videoUrl ? post.content.replace(post.videoUrl, '').trim() : post.content}
+                  {post.images && post.images.length > 0 && (
+                    <span className="text-xs font-bold bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg border border-blue-100 flex items-center">
+                      <ImageIcon size={12} className="mr-0.5" /> {post.images.length}图
+                    </span>
+                  )}
+
+                  {post.isAiGenerated && (
+                    <span className="text-xs font-bold bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg border border-indigo-100 flex items-center">
+                      <Zap size={12} className="mr-0.5 fill-current" /> 话题
+                    </span>
+                  )}
                 </div>
 
-                {/* Video Player */}
+                <h3 className="text-xl font-black text-gray-900 dark:text-white mb-3 leading-snug">
+                  {post.title}
+                </h3>
+                <div className={`text-gray-700 dark:text-gray-300 text-base leading-relaxed whitespace-pre-wrap ${isExpanded ? '' : 'line-clamp-3'}`}>
+                  {isExpanded ? (
+                    post.content ? polishText(post.content) : post.content // Just display content, polish is manual
+                  ) : post.content}
+                </div>{/* Video Player */}
                 {post.videoUrl && (
                   <div className="mb-6 rounded-xl overflow-hidden shadow-sm">
                     {post.videoUrl.includes('youtube.com') || post.videoUrl.includes('youtu.be') ? (
@@ -518,7 +572,7 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
                   )
                 }
 
-                <div className="flex items-center justify-between text-gray-500 border-t border-gray-100 pt-5">
+                <div className="flex items-center justify-between text-gray-500 dark:text-gray-400 border-t border-gray-100 dark:border-gray-700 pt-5">
                   <div className="flex items-center space-x-6">
                     <button
                       onClick={(e) => handleLike(post, e)}
@@ -533,6 +587,16 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
                     >
                       <MessageCircle size={20} />
                       <span className="font-bold">{post.comments}</span>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowShareModal(post.id);
+                      }}
+                      className="flex items-center space-x-2 hover:text-indigo-500 transition-colors text-gray-500"
+                    >
+                      <Share2 size={20} />
+                      <span className="font-bold">分享</span>
                     </button>
                   </div>
 
@@ -551,18 +615,46 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
                 {/* Comments Section */}
                 {
                   expandedCommentPostId === post.id && (
-                    <div className="mt-6 pt-6 border-t border-gray-100 animate-[fadeIn_0.2s]" onClick={e => e.stopPropagation()}>
-                      <h4 className="font-bold text-gray-900 mb-4">评论 ({post.comments})</h4>
+                    <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700 animate-[fadeIn_0.2s]" onClick={e => e.stopPropagation()}>
+                      <h4 className="font-bold text-gray-900 dark:text-white mb-4">评论 ({post.comments})</h4>
 
                       {/* Comment List */}
                       <div className="space-y-4 mb-6 max-h-96 overflow-y-auto">
                         {post.commentsList?.map(comment => (
-                          <div key={comment.id} className="bg-gray-50 p-3 rounded-xl">
+                          <div key={comment.id} className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl">
                             <div className="flex justify-between items-start mb-1">
-                              <span className="font-bold text-sm text-gray-900">@{comment.author}</span>
-                              <span className="text-xs text-gray-400">{Math.floor((Date.now() - comment.timestamp) / 60000)}分钟前</span>
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-sm text-gray-900 dark:text-white">@{comment.author}</span>
+                                <span className="text-xs text-gray-400">{Math.floor((Date.now() - comment.timestamp) / 60000)}分钟前</span>
+                              </div>
+                              {(user?.role === UserRole.ADMIN || (user?.email && user.email.split('@')[0] === comment.author)) && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (confirm('确定要删除这条评论吗？')) {
+                                      ForumDatabase.deleteComment(comment.id).then(() => {
+                                        // Update local state
+                                        setPosts(prevPosts => prevPosts.map(p => {
+                                          if (p.id === post.id) {
+                                            return {
+                                              ...p,
+                                              comments: Math.max(0, p.comments - 1),
+                                              commentsList: p.commentsList?.filter(c => c.id !== comment.id)
+                                            };
+                                          }
+                                          return p;
+                                        }));
+                                      });
+                                    }
+                                  }}
+                                  className="text-gray-400 hover:text-red-500 p-1"
+                                  title="删除评论"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              )}
                             </div>
-                            <p className="text-gray-700 text-sm whitespace-pre-wrap">{comment.content}</p>
+                            <p className="text-gray-700 dark:text-gray-300 text-sm whitespace-pre-wrap">{comment.content}</p>
 
                             {/* Comment YouTube Video */}
                             {comment.content.match(/(https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)[^\s]+)/) && (
@@ -620,33 +712,130 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate }) => {
                           </div>
                         )}
 
-                        <form onSubmit={(e) => handleSubmitComment(post.id, e)} className="flex gap-2 items-end">
-                          <div className="flex-1 relative">
-                            <input
-                              type="text"
+                        <form onSubmit={(e) => handleSubmitComment(post.id, e)} className="w-full">
+                          <div className="bg-gray-100 dark:bg-gray-700/50 rounded-2xl p-3 transition-colors focus-within:bg-white dark:focus-within:bg-gray-700 focus-within:ring-2 focus-within:ring-indigo-500/20 border border-transparent focus-within:border-indigo-500/50">
+                            <textarea
                               placeholder="写下你的评论..."
                               value={newCommentContent}
                               onChange={e => setNewCommentContent(e.target.value)}
-                              className="w-full bg-gray-100 border-transparent focus:bg-white focus:border-indigo-500 rounded-full pl-4 pr-10 py-2 text-sm outline-none transition-all"
+                              rows={2}
+                              className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm text-gray-900 dark:text-white placeholder-gray-400 resize-none outline-none"
+                              style={{ minHeight: '48px' }}
                             />
-                            <label className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-indigo-600 p-1">
-                              <input type="file" multiple accept="image/*" className="hidden" onChange={handleCommentImageUpload} />
-                              <ImageIcon size={18} />
-                            </label>
+
+                            <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-200 dark:border-gray-600/50">
+                              <div className="flex items-center gap-3">
+                                {/* AI Polish Button */}
+                                <button
+                                  type="button"
+                                  onClick={handleCommentPolish}
+                                  disabled={isPolishingComment || !newCommentContent.trim()}
+                                  className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium transition-all ${isPolishingComment
+                                    ? 'bg-indigo-100 text-indigo-600 animate-pulse'
+                                    : newCommentContent.trim()
+                                      ? 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
+                                      : 'text-gray-400 cursor-not-allowed'
+                                    }`}
+                                  title="AI 润色"
+                                >
+                                  <Wand2 size={14} />
+                                  <span>AI 润色</span>
+                                </button>
+
+                                {/* Image Upload */}
+                                <label className="cursor-pointer text-gray-400 hover:text-indigo-600 p-1 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                                  <input type="file" multiple accept="image/*" className="hidden" onChange={handleCommentImageUpload} />
+                                  <ImageIcon size={18} />
+                                </label>
+                              </div>
+
+                              <button
+                                type="submit"
+                                disabled={!newCommentContent.trim() && newCommentImages.length === 0}
+                                className="bg-indigo-600 text-white p-2 rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                              >
+                                <Send size={16} className="ml-0.5" />
+                              </button>
+                            </div>
                           </div>
-                          <button
-                            type="submit"
-                            disabled={submittingComment || (!newCommentContent.trim() && newCommentImages.length === 0)}
-                            className="bg-indigo-600 text-white p-2 rounded-full hover:bg-indigo-700 disabled:opacity-50 transition-colors shrink-0"
-                          >
-                            <Send size={16} />
-                          </button>
                         </form>
                       </div>
                     </div>
                   )
                 }
-              </div >
+
+                {/* Share Modal */}
+                {showShareModal === post.id && (
+                  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center animate-[fadeIn_0.2s]" onClick={() => setShowShareModal(null)}>
+                    <div className="bg-white dark:bg-gray-800 w-full sm:w-[28rem] rounded-t-[2rem] sm:rounded-[2rem] p-6 animate-[slideUp_0.3s]" onClick={e => e.stopPropagation()}>
+                      <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-lg font-black text-gray-900 dark:text-white">分享至</h3>
+                        <button onClick={() => setShowShareModal(null)} className="p-2 bg-gray-100 dark:bg-gray-700 rounded-xl text-gray-500">
+                          <X size={20} />
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-4 gap-4 mb-8">
+                        {[
+                          { id: 'wechat', label: '微信好友', icon: MessageCircle, color: 'bg-green-500 text-white' },
+                          { id: 'moments', label: '朋友圈', icon: Aperture, color: 'bg-gradient-to-tr from-green-400 to-blue-500 text-white' },
+                          { id: 'xhs', label: '小红书', icon: BookOpen, color: 'bg-red-500 text-white' },
+                          { id: 'copy', label: '复制链接', icon: Link, color: 'bg-gray-500 text-white' },
+                        ].map((item) => (
+                          <button
+                            key={item.id}
+                            onClick={() => {
+                              const url = window.location.href;
+                              const text = `【City666】${post.title}\n${post.content?.slice(0, 50)}...\n${url}`;
+
+                              if (navigator.clipboard) {
+                                navigator.clipboard.writeText(item.id === 'copy' ? url : text).then(() => {
+                                  alert(item.id === 'copy' ? '链接已复制' : '内容已复制，请打开APP粘贴分享');
+                                  setShowShareModal(null);
+                                });
+                              } else {
+                                // Fallback
+                                const textArea = document.createElement("textarea");
+                                textArea.value = item.id === 'copy' ? url : text;
+                                document.body.appendChild(textArea);
+                                textArea.select();
+                                document.execCommand('copy');
+                                document.body.removeChild(textArea);
+                                alert(item.id === 'copy' ? '链接已复制' : '内容已复制，请打开APP粘贴分享');
+                                setShowShareModal(null);
+                              }
+                            }}
+                            className="flex flex-col items-center gap-2 group"
+                          >
+                            <div className={`w-14 h-14 rounded-2xl ${item.color} flex items-center justify-center shadow-lg group-active:scale-95 transition-transform`}>
+                              <item.icon size={28} strokeWidth={2} />
+                            </div>
+                            <span className="text-xs font-bold text-gray-600 dark:text-gray-300">{item.label}</span>
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 flex items-center gap-3">
+                        <div className="bg-white dark:bg-gray-600 p-2 rounded-lg">
+                          <Link size={20} className="text-gray-400" />
+                        </div>
+                        <div className="flex-1 overflow-hidden">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{window.location.href}</p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(window.location.href);
+                            alert('链接已复制');
+                          }}
+                          className="text-xs font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 px-3 py-1.5 rounded-lg"
+                        >
+                          复制
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             )
           })}
           {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ViewState, UserProfile, UserRole } from './types';
+import { ViewState, UserProfile, UserRole, AdItem } from './types';
 import Navigation from './components/Navigation';
 import NewsView from './views/NewsView';
 import ForumView from './views/ForumView';
@@ -7,6 +7,7 @@ import ServicesView from './views/ServicesView';
 import ProfileView from './views/ProfileView';
 import AdminView from './views/AdminView';
 import AdCreateView from './views/AdCreateView';
+import AdDetailView from './views/AdDetailView';
 import LoginView from './views/LoginView';
 import RegisterView from './views/RegisterView';
 import { NewsCrawler, getCityNameFromCoordinates } from './services/geminiService';
@@ -31,6 +32,18 @@ const App: React.FC = () => {
   const [apiKeyMissing, setApiKeyMissing] = useState(false);
   const [city, setCity] = useState<string>('本地');
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [selectedAd, setSelectedAd] = useState<AdItem | null>(() => {
+    const saved = localStorage.getItem('urbanhub_selected_ad');
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  useEffect(() => {
+    if (selectedAd) {
+      localStorage.setItem('urbanhub_selected_ad', JSON.stringify(selectedAd));
+    } else {
+      localStorage.removeItem('urbanhub_selected_ad');
+    }
+  }, [selectedAd]);
 
   useEffect(() => {
     if (!process.env.API_KEY) {
@@ -116,12 +129,45 @@ const App: React.FC = () => {
     }));
   };
 
+  // Dark Mode State
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('theme') === 'dark' ||
+        (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [isDarkMode]);
+
+  const toggleTheme = () => setIsDarkMode(!isDarkMode);
+
   const renderContent = () => {
     switch (currentView) {
       case ViewState.NEWS:
-        return <NewsView city={city} onCityUpdate={updateCity} user={user} onNavigate={setCurrentView} />;
+        return <NewsView
+          city={city}
+          onCityUpdate={updateCity}
+          user={user}
+          onNavigate={(view, data) => {
+            if (view === ViewState.AD_DETAIL && data) {
+              setSelectedAd(data as AdItem);
+            }
+            setCurrentView(view);
+          }}
+          isDarkMode={isDarkMode}
+          toggleTheme={toggleTheme}
+        />;
       case ViewState.FORUM:
-        return <ForumView city={city} onNavigate={setCurrentView} />;
+        return <ForumView city={city} onNavigate={setCurrentView} isDarkMode={isDarkMode} toggleTheme={toggleTheme} />;
       case ViewState.SERVICES:
         return <ServicesView />;
       case ViewState.PROFILE:
@@ -130,12 +176,18 @@ const App: React.FC = () => {
         return <AdminView onBack={() => setCurrentView(ViewState.PROFILE)} />;
       case ViewState.CREATE_AD:
         return <AdCreateView onBack={() => setCurrentView(ViewState.PROFILE)} />;
+      case ViewState.AD_DETAIL:
+        if (!selectedAd) {
+          setCurrentView(ViewState.NEWS);
+          return null;
+        }
+        return <AdDetailView ad={selectedAd} onBack={() => setCurrentView(ViewState.NEWS)} />;
       case ViewState.LOGIN:
         return <LoginView onNavigate={setCurrentView} />;
       case ViewState.REGISTER:
         return <RegisterView onNavigate={setCurrentView} />;
       default:
-        return <NewsView city={city} onCityUpdate={updateCity} />;
+        return <NewsView city={city} onCityUpdate={updateCity} isDarkMode={isDarkMode} toggleTheme={toggleTheme} />;
     }
   };
 
@@ -143,7 +195,8 @@ const App: React.FC = () => {
     currentView !== ViewState.ADMIN &&
     currentView !== ViewState.CREATE_AD &&
     currentView !== ViewState.LOGIN &&
-    currentView !== ViewState.REGISTER;
+    currentView !== ViewState.REGISTER &&
+    currentView !== ViewState.AD_DETAIL;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans">

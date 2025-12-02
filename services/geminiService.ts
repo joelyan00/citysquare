@@ -36,7 +36,50 @@ const toDbSchema = (item: NewsItem) => ({
   city: item.city
 });
 
-// Enhanced cleanJsonString to be more robust
+// City Mapping Configuration
+const CITY_CATEGORY_MAP: Record<string, NewsCategory> = {
+  // GTA
+  'Toronto': NewsCategory.GTA,
+  'GTA': NewsCategory.GTA,
+  'Greater Toronto Area': NewsCategory.GTA,
+  '大多伦多': NewsCategory.GTA,
+  '多伦多': NewsCategory.GTA,
+  'Markham': NewsCategory.GTA,
+  'Richmond Hill': NewsCategory.GTA,
+  'Mississauga': NewsCategory.GTA,
+
+  // Vancouver
+  'Vancouver': NewsCategory.VANCOUVER,
+  '温哥华': NewsCategory.VANCOUVER,
+  'Richmond': NewsCategory.VANCOUVER,
+  'Burnaby': NewsCategory.VANCOUVER,
+
+  // Montreal
+  'Montreal': NewsCategory.MONTREAL,
+  '蒙特利尔': NewsCategory.MONTREAL,
+
+  // Calgary
+  'Calgary': NewsCategory.CALGARY,
+  '卡尔加里': NewsCategory.CALGARY,
+
+  // Edmonton
+  'Edmonton': NewsCategory.EDMONTON,
+  '埃德蒙顿': NewsCategory.EDMONTON,
+
+  // Waterloo
+  'Waterloo': NewsCategory.WATERLOO,
+  'Kitchener': NewsCategory.WATERLOO,
+  'Cambridge': NewsCategory.WATERLOO,
+  '滑铁卢': NewsCategory.WATERLOO,
+
+  // Windsor
+  'Windsor': NewsCategory.WINDSOR,
+  '温莎': NewsCategory.WINDSOR,
+
+  // London
+  'London': NewsCategory.LONDON,
+  '伦敦': NewsCategory.LONDON
+};
 const cleanJsonString = (str: string) => {
   if (!str) return "[]";
   let cleaned = str.replace(/^```json\s*/g, '').replace(/^```\s*/g, '').replace(/```$/g, '').trim();
@@ -112,15 +155,48 @@ export const getCityNameFromCoordinates = async (lat: number, lon: number): Prom
   }
 };
 
+// Helper: Compress Image
+const compressImage = async (base64Str: string, maxWidth = 1200, quality = 0.7): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.src = base64Str;
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+
+      if (width > maxWidth) {
+        height = Math.round((height * maxWidth) / width);
+        width = maxWidth;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Canvas context null'));
+        return;
+      }
+
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob((blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error('Compression failed'));
+      }, 'image/jpeg', quality);
+    };
+    img.onerror = (err) => reject(err);
+  });
+};
+
 export const uploadImageToSupabase = async (base64Data: string, filename: string): Promise<string | null> => {
   try {
     if (!supabaseUrl || supabaseUrl.includes('placeholder')) return null;
 
-    // Use manual conversion instead of fetch
-    const blob = base64ToBlob(base64Data);
+    // Compress the image before uploading
+    const compressedBlob = await compressImage(base64Data);
 
-    const { data, error } = await supabase.storage.from('urbanhub_assets').upload(filename, blob, {
-      contentType: blob.type,
+    const { data, error } = await supabase.storage.from('urbanhub_assets').upload(filename, compressedBlob, {
+      contentType: 'image/jpeg', // Always convert to JPEG for better compression
       upsert: true
     });
 
@@ -215,6 +291,25 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
     topic = context && context !== '本地' ? context : '您所在的城市';
     articleCount = config.news.localArticleCount || 15;
     timeWindow = config.news.localTimeWindow || "48 hours";
+  } else if ([
+    NewsCategory.GTA, NewsCategory.VANCOUVER, NewsCategory.MONTREAL,
+    NewsCategory.CALGARY, NewsCategory.EDMONTON, NewsCategory.WATERLOO,
+    NewsCategory.WINDSOR, NewsCategory.LONDON
+  ].includes(category as NewsCategory)) {
+    // Treat new cities as Local News but with specific topic
+    const cityMap: Record<string, string> = {
+      [NewsCategory.GTA]: 'Greater Toronto Area',
+      [NewsCategory.VANCOUVER]: 'Vancouver',
+      [NewsCategory.MONTREAL]: 'Montreal',
+      [NewsCategory.CALGARY]: 'Calgary',
+      [NewsCategory.EDMONTON]: 'Edmonton',
+      [NewsCategory.WATERLOO]: 'Waterloo Region',
+      [NewsCategory.WINDSOR]: 'Windsor',
+      [NewsCategory.LONDON]: 'London, Ontario'
+    };
+    topic = cityMap[category];
+    articleCount = config.news.localArticleCount || 15;
+    timeWindow = config.news.localTimeWindow || "48 hours";
   } else if (category === NewsCategory.CANADA) {
     topic = 'Canada';
     articleCount = config.news.canadaArticleCount || 10;
@@ -259,7 +354,7 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
   Article Count: Try to find ${articleCount} items.
   Keywords to focus on: ${keywords}.
   
-  For LOCAL news, you MUST search for "Official City Hall Announcements" for ${topic} and include them.
+  For LOCAL news (including specific cities), you MUST search for "Official City Hall Announcements" for ${topic} and include them.
   
   CRITICAL FOR LOCAL NEWS:
   - The news MUST be specifically about "${topic}".
@@ -332,18 +427,17 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
       let imageUrl = item.image_url && isValidUrl(item.image_url) ? item.image_url : undefined;
 
       if (!imageUrl) {
-        // Fallback to AI Image Generation + Imgur Upload
+        // Fallback to AI Image Generation + Supabase Upload
         try {
           console.log(`Generating AI image for: ${item.title}`);
           const base64Image = await generateNewsImage(item.title, category);
           if (base64Image) {
-            // Convert Base64 to Blob
-            const blob = base64ToBlob(base64Image);
-            // Upload to Imgur
-            const imgurLink = await uploadImageToImgur(blob);
-            if (imgurLink) {
-              imageUrl = imgurLink;
-              console.log(`AI Image uploaded to Imgur: ${imgurLink}`);
+            // Upload to Supabase
+            const filename = `ai_news/${Date.now()}_${index}.png`;
+            const supabaseUrl = await uploadImageToSupabase(base64Image, filename);
+            if (supabaseUrl) {
+              imageUrl = supabaseUrl;
+              console.log(`AI Image uploaded to Supabase: ${supabaseUrl}`);
             }
           }
         } catch (err) {
@@ -412,11 +506,30 @@ export const NewsDatabase = {
 
     let query = supabase
       .from('news')
-      .select('id, title, summary, category, timestamp, image_url, source, source_url, youtube_url, city')
-      .eq('category', category);
+      .select('id, title, summary, category, timestamp, image_url, source, source_url, youtube_url, city');
+
+    // Smart City Mapping Logic
+    let effectiveCategory = category;
+    let effectiveCity = city;
 
     if (category === NewsCategory.LOCAL && city && city !== '本地') {
-      query = query.eq('city', city);
+      // Check if this city maps to a special category
+      const mappedCategory = Object.entries(CITY_CATEGORY_MAP).find(([key, val]) =>
+        city.toLowerCase().includes(key.toLowerCase()) || key.toLowerCase().includes(city.toLowerCase())
+      )?.[1];
+
+      if (mappedCategory) {
+        effectiveCategory = mappedCategory;
+        // When using a mapped category, we don't filter by city string anymore, 
+        // we filter by the category itself.
+        effectiveCity = undefined;
+      }
+    }
+
+    query = query.eq('category', effectiveCategory);
+
+    if (effectiveCategory === NewsCategory.LOCAL && effectiveCity && effectiveCity !== '本地') {
+      query = query.eq('city', effectiveCity);
     }
 
     const { data, error } = await query
@@ -473,7 +586,16 @@ export const NewsDatabase = {
 
     if (Object.values(NewsCategory).includes(category as NewsCategory)) {
       switch (category) {
-        case NewsCategory.LOCAL: limit = config.news.localRetentionLimit || 50; break;
+        case NewsCategory.LOCAL:
+        case NewsCategory.GTA:
+        case NewsCategory.VANCOUVER:
+        case NewsCategory.MONTREAL:
+        case NewsCategory.CALGARY:
+        case NewsCategory.EDMONTON:
+        case NewsCategory.WATERLOO:
+        case NewsCategory.WINDSOR:
+        case NewsCategory.LONDON:
+          limit = config.news.localRetentionLimit || 50; break;
         case NewsCategory.CANADA: limit = config.news.canadaRetentionLimit || 50; break;
         case NewsCategory.USA: limit = config.news.usaRetentionLimit || 50; break;
         case NewsCategory.CHINA: limit = config.news.chinaRetentionLimit || 50; break;
@@ -526,23 +648,41 @@ export const NewsCrawler = {
     }, 60000);
   },
 
-  shouldUpdate: async (category: string): Promise<boolean> => {
-    const lastUpdate = await NewsDatabase.getLastUpdateTime(category);
+  shouldUpdate: async (category: string, context?: string): Promise<boolean> => {
+    // Smart City Mapping Logic
+    let effectiveCategory = category;
+    if (category === NewsCategory.LOCAL && context && context !== '本地') {
+      const mappedCategory = Object.entries(CITY_CATEGORY_MAP).find(([key, val]) =>
+        context.toLowerCase().includes(key.toLowerCase()) || key.toLowerCase().includes(context.toLowerCase())
+      )?.[1];
+      if (mappedCategory) effectiveCategory = mappedCategory;
+    }
+
+    const lastUpdate = await NewsDatabase.getLastUpdateTime(effectiveCategory);
     const now = Date.now();
     const config = await ConfigService.get();
 
     let intervalMinutes = 120; // Default 2 hours
 
-    if (Object.values(NewsCategory).includes(category as NewsCategory)) {
-      switch (category) {
-        case NewsCategory.LOCAL: intervalMinutes = config.news.localRefreshInterval || 720; break;
+    if (Object.values(NewsCategory).includes(effectiveCategory as NewsCategory)) {
+      switch (effectiveCategory) {
+        case NewsCategory.LOCAL:
+        case NewsCategory.GTA:
+        case NewsCategory.VANCOUVER:
+        case NewsCategory.MONTREAL:
+        case NewsCategory.CALGARY:
+        case NewsCategory.EDMONTON:
+        case NewsCategory.WATERLOO:
+        case NewsCategory.WINDSOR:
+        case NewsCategory.LONDON:
+          intervalMinutes = config.news.localRefreshInterval || 720; break;
         case NewsCategory.CANADA: intervalMinutes = config.news.canadaRefreshInterval || 120; break;
         case NewsCategory.USA: intervalMinutes = config.news.usaRefreshInterval || 120; break;
         case NewsCategory.CHINA: intervalMinutes = config.news.chinaRefreshInterval || 720; break;
         case NewsCategory.INTERNATIONAL: intervalMinutes = config.news.intlRefreshInterval || 120; break;
       }
     } else {
-      const customCat = config.news.customCategories?.find(c => c.id === category);
+      const customCat = config.news.customCategories?.find(c => c.id === effectiveCategory);
       if (customCat) intervalMinutes = customCat.refreshInterval || 120;
     }
 
@@ -551,8 +691,23 @@ export const NewsCrawler = {
   },
 
   run: async (category: string, context?: string) => {
-    console.log(`Crawler running for ${category}...`);
-    const news = await fetchNewsFromAI(category, context);
+    // Smart City Mapping Logic
+    let effectiveCategory = category;
+    let effectiveContext = context;
+
+    if (category === NewsCategory.LOCAL && context && context !== '本地') {
+      const mappedCategory = Object.entries(CITY_CATEGORY_MAP).find(([key, val]) =>
+        context.toLowerCase().includes(key.toLowerCase()) || key.toLowerCase().includes(context.toLowerCase())
+      )?.[1];
+      if (mappedCategory) {
+        effectiveCategory = mappedCategory;
+        // When using a mapped category, the context (city name) is implicit in the category logic
+        // But we can keep it or clear it. Let's keep it as is, fetchNewsFromAI handles mapped categories.
+      }
+    }
+
+    console.log(`Crawler running for ${effectiveCategory} (Context: ${effectiveContext})...`);
+    const news = await fetchNewsFromAI(effectiveCategory, effectiveContext);
     if (news.length > 0) {
       await NewsDatabase.save(news);
       window.dispatchEvent(new Event('NEWS_DB_UPDATED'));
@@ -824,6 +979,18 @@ export const ForumDatabase = {
       images: item.images || [],
       videoUrl: item.video_url
     }));
+  },
+
+  deletePost: async (postId: string): Promise<boolean> => {
+    if (!supabaseUrl) return false;
+    const { error } = await supabase.from('forum').delete().eq('id', postId);
+    return !error;
+  },
+
+  deleteComment: async (commentId: string): Promise<boolean> => {
+    if (!supabaseUrl) return false;
+    const { error } = await supabase.from('forum_comments').delete().eq('id', commentId);
+    return !error;
   }
 };
 
@@ -874,7 +1041,8 @@ export const AdDatabase = {
       scope: item.scope,
       durationDays: item.duration_days,
       priceTotal: item.price_total,
-      status: item.status
+      status: item.status,
+      linkUrl: item.link_url
     }));
   }
 };
@@ -983,7 +1151,8 @@ export const AdminDatabase = {
       scope: item.scope,
       durationDays: item.duration_days,
       priceTotal: item.price_total,
-      status: item.status
+      status: item.status,
+      linkUrl: item.link_url
     }));
   },
 

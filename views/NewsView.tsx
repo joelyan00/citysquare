@@ -3,7 +3,21 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { NewsCategory, NewsItem, AdItem, UserProfile, ViewState } from '../types';
 import { NewsDatabase, NewsCrawler, AdDatabase } from '../services/geminiService';
 import { ConfigService } from '../services/configService';
-import { Share2, ChevronDown, ChevronUp, MapPin, Edit2, X, Check, RefreshCw } from 'lucide-react';
+import { Share2, ChevronDown, ChevronUp, MapPin, Edit2, X, Check, RefreshCw, Sun, Moon, ChevronRight, MessageCircle, Aperture, BookOpen, Link, Search, Menu, User } from 'lucide-react';
+import NewsCard from '../components/NewsCard';
+import ShareCard from '../components/ShareCard';
+import html2canvas from 'html2canvas';
+
+const POPULAR_CITIES = [
+  { label: '大多伦多 (Toronto)', value: 'Toronto' },
+  { label: '温哥华 (Vancouver)', value: 'Vancouver' },
+  { label: '蒙特利尔 (Montreal)', value: 'Montreal' },
+  { label: '卡尔加里 (Calgary)', value: 'Calgary' },
+  { label: '埃德蒙顿 (Edmonton)', value: 'Edmonton' },
+  { label: '滑铁卢 (Waterloo)', value: 'Waterloo' },
+  { label: '温莎 (Windsor)', value: 'Windsor' },
+  { label: '伦敦 (London)', value: 'London' },
+];
 
 const staticCategoryLabels: Partial<Record<NewsCategory, string>> = {
   [NewsCategory.CANADA]: '加拿大',
@@ -14,23 +28,18 @@ const staticCategoryLabels: Partial<Record<NewsCategory, string>> = {
 
 const CATEGORY_STORAGE_KEY = 'urbanhub_active_category';
 
-// Helper to reliably extract YouTube Video ID from various URL formats
-const getYouTubeVideoId = (url: string) => {
-  if (!url) return null;
-  // Robust regex for YouTube IDs (11 chars, alphanumeric + _ -)
-  const regExp = /(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
-  const match = url.match(regExp);
-  return match ? match[1] : null;
-};
+
 
 interface NewsViewProps {
   city: string;
   onCityUpdate: (city: string) => void;
   user?: UserProfile | null;
-  onNavigate?: (view: ViewState) => void;
+  onNavigate?: (view: ViewState, data?: any) => void;
+  isDarkMode?: boolean;
+  toggleTheme?: () => void;
 }
 
-const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigate }) => {
+const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigate, isDarkMode, toggleTheme }) => {
   // Initialize state from localStorage if available
   const [activeCategory, setActiveCategory] = useState<string>(() => {
     const saved = localStorage.getItem(CATEGORY_STORAGE_KEY);
@@ -50,6 +59,10 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
   const [manualCityInput, setManualCityInput] = useState('');
 
   const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState<NewsItem | null>(null);
+  const [generatedShareImage, setGeneratedShareImage] = useState<string | null>(null);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const shareCardRef = React.useRef<HTMLDivElement>(null);
 
 
 
@@ -60,11 +73,17 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
 
   // Prepare all categories list for easy rendering
   const allCategories = React.useMemo(() => [
-    ...Object.values(NewsCategory).map(cat => ({
-      id: cat,
-      label: cat === NewsCategory.LOCAL ? city : (staticCategoryLabels[cat] || cat),
-      isLocal: cat === NewsCategory.LOCAL
-    })),
+    ...Object.values(NewsCategory)
+      .filter(cat => ![
+        NewsCategory.GTA, NewsCategory.VANCOUVER, NewsCategory.MONTREAL,
+        NewsCategory.CALGARY, NewsCategory.EDMONTON, NewsCategory.WATERLOO,
+        NewsCategory.WINDSOR, NewsCategory.LONDON
+      ].includes(cat))
+      .map(cat => ({
+        id: cat,
+        label: cat === NewsCategory.LOCAL ? city : (staticCategoryLabels[cat] || cat),
+        isLocal: cat === NewsCategory.LOCAL
+      })),
     ...customCategories.map(cat => ({
       id: cat.id,
       label: cat.name,
@@ -192,118 +211,53 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
     }
   };
 
-  // Helper to linkify text
-  const linkify = (text: string) => {
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
-    return text.split(urlRegex).map((part, i) => {
-      if (part.match(urlRegex)) {
-        return (
-          <a
-            key={i}
-            href={part}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-600 hover:underline break-all"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {part}
-          </a>
-        );
+  const handleShare = async (item: NewsItem) => {
+    setShowShareModal(item);
+    setGeneratedShareImage(null);
+    setIsGeneratingImage(true);
+
+    // Wait for render
+    setTimeout(async () => {
+      if (shareCardRef.current) {
+        try {
+          const canvas = await html2canvas(shareCardRef.current, {
+            useCORS: true,
+            scale: 2, // Retina quality
+            backgroundColor: '#ffffff',
+            logging: false
+          });
+          setGeneratedShareImage(canvas.toDataURL('image/png'));
+        } catch (error) {
+          console.error("Screenshot generation failed:", error);
+        } finally {
+          setIsGeneratingImage(false);
+        }
       }
-      return part;
-    });
+    }, 100);
   };
+
+
 
   // Inject Ads Logic
   const renderList = () => {
     const mixedList: React.ReactNode[] = [];
     newsData.forEach((item, index) => {
+      // First item is Hero, others are Standard
+      const variant = index === 0 ? 'hero' : 'standard';
+
       // Render News Card
-      const videoId = item.youtubeUrl ? getYouTubeVideoId(item.youtubeUrl) : null;
       mixedList.push(
-        <article key={item.id} className="bg-white rounded-[2rem] shadow-sm overflow-hidden border border-gray-100 transition-all hover:shadow-md mb-8">
-          {/* Responsive Image Height: h-64 on mobile, h-[500px] on desktop - Only render if image exists */}
-          {item.imageUrl && (
-            <div className="relative h-64 md:h-[500px] bg-gray-200 group">
-              <img
-                src={item.imageUrl}
-                alt={item.title}
-                loading="lazy"
-                className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
-              />
-              <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md text-white text-xs font-black px-3 py-1.5 rounded-lg">
-                {item.category === NewsCategory.LOCAL ? city :
-                  staticCategoryLabels[item.category as NewsCategory] ||
-                  customCategories.find(c => c.id === item.category)?.name ||
-                  item.category}
-              </div>
-            </div>
-          )}
-
-          <div className="p-6 md:p-8">
-            {/* Source Header */}
-            <div className="flex items-center space-x-2 mb-3">
-              <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center">
-                <span className="text-[10px] font-black text-gray-500">{item.source?.[0]?.toUpperCase() || 'N'}</span>
-              </div>
-              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                {item.source || 'CitySquare News'}
-              </span>
-            </div>
-
-            <h2 className="text-2xl md:text-4xl font-black text-gray-900 leading-tight mb-4 tracking-tight">
-              {item.title}
-            </h2>
-
-            <div className={`text-gray-700 text-lg md:text-xl font-medium leading-relaxed mb-5 whitespace-pre-wrap ${expandedNewsId === item.id ? '' : 'line-clamp-3'}`}>
-              {expandedNewsId === item.id ? (
-                item.content ? linkify(item.content) : <span className="text-brand-500 animate-pulse">正在加载全文...</span>
-              ) : linkify(item.summary)}
-            </div>
-
-            {/* YouTube Embed */}
-            {expandedNewsId === item.id && videoId && (
-              <div className="mb-5 rounded-xl overflow-hidden shadow-md bg-black">
-                <iframe
-                  width="100%"
-                  height="100%"
-                  className="aspect-video"
-                  src={`https://www.youtube.com/embed/${videoId}`}
-                  title="YouTube video player"
-                  frameBorder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                ></iframe>
-              </div>
-            )}
-
-            <div className="flex items-center justify-between pt-5 border-t border-gray-100 mt-2">
-              <div className="flex items-center space-x-3">
-                <span className="text-xs text-gray-400 font-bold font-mono">
-                  {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
-              </div>
-
-              <div className="flex items-center space-x-5">
-                <button
-                  onClick={() => toggleExpand(item.id)}
-                  className="flex items-center text-base font-extrabold text-brand-600 active:text-brand-800 p-1 hover:bg-brand-50 rounded-lg px-3 transition-colors"
-                >
-                  {expandedNewsId === item.id ? (
-                    <>收起 <ChevronUp size={18} className="ml-1" strokeWidth={3} /></>
-                  ) : (
-                    <>阅读 <ChevronDown size={18} className="ml-1" strokeWidth={3} /></>
-                  )}
-                </button>
-                <button className="text-gray-400 hover:text-brand-600 active:scale-90 transition-transform">
-                  <Share2 size={22} strokeWidth={2.5} />
-                </button>
-              </div>
-            </div>
-
-
-          </div>
-        </article>
+        <NewsCard
+          key={item.id}
+          item={item}
+          city={city}
+          staticCategoryLabels={staticCategoryLabels}
+          customCategories={customCategories}
+          expandedNewsId={expandedNewsId}
+          toggleExpand={toggleExpand}
+          onShare={handleShare}
+          variant={variant}
+        />
       );
 
       // Inject Ad every 4 items (starting after item 3)
@@ -311,16 +265,26 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
         const adIndex = Math.floor((index + 1) / 4) - 1;
         const ad = ads[adIndex % ads.length];
         mixedList.push(
-          <div key={`ad-${index}`} className="bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-100 rounded-[2rem] p-6 mb-8 shadow-sm relative overflow-hidden">
-            <div className="absolute top-0 right-0 bg-yellow-400 text-yellow-900 text-xs font-black px-3 py-1 rounded-bl-xl">Sponsored 广告</div>
+          <div
+            key={`ad-${index}`}
+            onClick={() => {
+              if (ad.linkUrl) {
+                window.open(ad.linkUrl, '_blank');
+              } else {
+                onNavigate && onNavigate(ViewState.AD_DETAIL, ad);
+              }
+            }}
+            className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-4 mb-4 shadow-sm relative overflow-hidden cursor-pointer hover:shadow-md active:scale-[0.99] transition-all"
+          >
+            <div className="absolute top-0 right-0 bg-yellow-400 text-yellow-900 text-[10px] font-bold px-2 py-0.5 rounded-bl-lg">Ad</div>
             <div className="flex items-start gap-4">
-              {ad.imageUrl && <img src={ad.imageUrl} alt={ad.title} className="w-24 h-24 object-cover rounded-xl shadow-md flex-shrink-0" />}
+              {ad.imageUrl && <img src={ad.imageUrl} alt={ad.title} className="w-20 h-20 object-cover rounded-lg shadow-sm flex-shrink-0" />}
               <div className="flex-1">
-                <h3 className="text-xl font-black text-gray-900 mb-2">{ad.title}</h3>
-                <p className="text-gray-700 font-medium text-sm line-clamp-3 mb-3">{ad.content}</p>
+                <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1 line-clamp-2">{ad.title}</h3>
+                <p className="text-gray-500 dark:text-gray-400 text-xs line-clamp-2 mb-2">{ad.content}</p>
                 {ad.contactInfo && (
-                  <div className="text-xs font-bold text-gray-500 bg-white/50 inline-block px-2 py-1 rounded">
-                    联系方式: {ad.contactInfo}
+                  <div className="text-[10px] font-bold text-gray-400 bg-gray-50 dark:bg-gray-700 inline-block px-1.5 py-0.5 rounded">
+                    {ad.contactInfo}
                   </div>
                 )}
               </div>
@@ -333,67 +297,100 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
   };
 
   return (
-    <div className="bg-gray-50 min-h-full">
-      {/* Header - Constrained width on desktop */}
-      <header className="bg-white sticky top-0 z-30 shadow-sm transition-shadow">
+    <div className="bg-gray-50 dark:bg-gray-900 min-h-full transition-colors duration-300">
+      {/* Google News Style Header */}
+      <header className="bg-white dark:bg-gray-800 sticky top-0 z-30 shadow-sm transition-all">
         <div className="max-w-4xl mx-auto">
-          <div className="px-5 py-4 flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-black text-gray-900 tracking-tight">City<span className="text-brand-600">666</span></h1>
+          {/* Top Bar: Menu - Logo - Search - Profile */}
+          <div className="px-4 py-3 flex justify-between items-center gap-4">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1.5">
+                <span className="text-2xl font-medium text-gray-700 dark:text-white tracking-tight">City666</span>
+                <span className="text-2xl font-light text-gray-700 dark:text-white tracking-tight">News</span>
+              </div>
             </div>
-            {/* User Avatar */}
-            {user && (
-              <button
-                onClick={() => onNavigate && onNavigate(ViewState.PROFILE)}
-                className="w-10 h-10 rounded-full bg-brand-600 text-white flex items-center justify-center font-bold text-lg shadow-md hover:shadow-lg active:scale-95 transition-all"
-              >
-                {user.name ? user.name.slice(0, 2).toUpperCase() : user.email.slice(0, 2).toUpperCase()}
+
+            <div className="flex items-center gap-2">
+              <button className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
+                <Search size={24} />
               </button>
-            )}
+
+              {/* Theme Toggle */}
+              {toggleTheme && (
+                <button
+                  onClick={toggleTheme}
+                  className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                  {isDarkMode ? <Sun size={24} /> : <Moon size={24} />}
+                </button>
+              )}
+
+              {/* User Avatar */}
+              {user ? (
+                <button
+                  onClick={() => onNavigate && onNavigate(ViewState.PROFILE)}
+                  className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-sm shadow-sm ml-1"
+                >
+                  {user.name ? user.name.slice(0, 1).toUpperCase() : user.email.slice(0, 1).toUpperCase()}
+                </button>
+              ) : (
+                <button
+                  onClick={() => onNavigate && onNavigate(ViewState.LOGIN)}
+                  className="w-8 h-8 rounded-full bg-brand-600 text-white flex items-center justify-center font-bold text-sm shadow-sm ml-1"
+                >
+                  <User size={16} />
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* Categories */}
-          <div className="relative">
+          {/* Categories (Tabs) */}
+          <div className="relative border-b border-gray-200 dark:border-gray-700">
             <div
               ref={scrollContainerRef}
-              className={`flex overflow-x-auto px-4 pb-4 no-scrollbar gap-2 md:gap-3 w-full ${showScrollButton ? 'pr-12' : ''}`}
+              className={`flex overflow-x-auto px-4 no-scrollbar gap-6 w-full ${showScrollButton ? 'pr-12' : ''}`}
             >
               {allCategories.map((cat) => (
                 <button
                   key={cat.id}
                   onClick={() => setActiveCategory(cat.id)}
-                  className={`flex-shrink-0 whitespace-nowrap px-4 md:px-6 py-2.5 rounded-full text-base font-extrabold transition-all flex items-center ${activeCategory === cat.id
-                    ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/30 transform scale-105'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  className={`flex-shrink-0 whitespace-nowrap py-3 text-sm font-medium transition-all relative ${activeCategory === cat.id
+                    ? 'text-brand-600 dark:text-brand-400'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                     }`}
                 >
                   {cat.isLocal && (
-                    <div className="flex items-center">
-                      <MapPin size={14} className="mr-1 -mt-0.5" strokeWidth={3} />
-                      <span className="mr-1">{cat.label}</span>
+                    <span className="flex items-center">
+                      <MapPin size={14} className="mr-1" />
+                      {cat.label}
                       {activeCategory === NewsCategory.LOCAL && (
-                        <div
+                        <span
                           onClick={(e) => { e.stopPropagation(); setShowLocationModal(true); }}
-                          className="ml-1 bg-white/20 rounded-full p-1 hover:bg-white/40 active:scale-95 transition-all"
+                          className="ml-1 text-gray-400 hover:text-brand-600"
                         >
-                          <Edit2 size={10} strokeWidth={3} />
-                        </div>
+                          <Edit2 size={10} />
+                        </span>
                       )}
-                    </div>
+                    </span>
                   )}
                   {!cat.isLocal && cat.label}
+
+                  {/* Active Indicator Line */}
+                  {activeCategory === cat.id && (
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-600 dark:bg-brand-400 rounded-t-full"></div>
+                  )}
                 </button>
               ))}
             </div>
 
-            {/* Expand Button (Absolute Positioned with Gradient Fade) - Only show if overflowing */}
+            {/* Expand Button */}
             {showScrollButton && (
-              <div className="absolute right-0 top-0 bottom-4 w-16 bg-gradient-to-l from-white via-white to-transparent flex justify-end items-center pr-4 pointer-events-none">
+              <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-white via-white to-transparent dark:from-gray-800 dark:via-gray-800 flex justify-end items-center pr-2 pointer-events-none">
                 <button
                   onClick={() => setShowCategoryModal(true)}
-                  className="pointer-events-auto bg-gray-100 hover:bg-gray-200 text-gray-600 p-2 rounded-full shadow-sm transition-colors"
+                  className="pointer-events-auto text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white p-1"
                 >
-                  <ChevronDown size={20} strokeWidth={2.5} />
+                  <ChevronDown size={20} />
                 </button>
               </div>
             )}
@@ -429,7 +426,7 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
             <p className="text-base font-medium mb-4">云端数据库为空</p>
             <button
               onClick={handleRefresh}
-              className="bg-brand-600 text-white px-6 py-2 rounded-full font-bold shadow-lg"
+              className="bg-brand-600 text-white px-6 py-2 rounded-2xl font-bold shadow-lg"
             >
               立即抓取
             </button>
@@ -445,7 +442,7 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
               <h3 className="text-xl font-black text-gray-900">全部分类</h3>
               <button
                 onClick={() => setShowCategoryModal(false)}
-                className="text-gray-400 hover:text-gray-600 p-1 bg-gray-100 rounded-full"
+                className="text-gray-400 hover:text-gray-600 p-1 bg-gray-100 rounded-xl"
               >
                 <X size={20} />
               </button>
@@ -496,14 +493,23 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
             </div>
 
             <div className="space-y-4">
-              <input
-                type="text"
-                placeholder="例如：多伦多、上海、纽约..."
-                value={manualCityInput}
-                onChange={e => setManualCityInput(e.target.value)}
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 font-bold text-gray-800 focus:ring-2 focus:ring-brand-500 outline-none transition-all text-center text-lg"
-                autoFocus
-              />
+              <div className="relative">
+                <select
+                  value={manualCityInput}
+                  onChange={e => setManualCityInput(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 font-bold text-gray-800 focus:ring-2 focus:ring-brand-500 outline-none transition-all appearance-none text-lg"
+                >
+                  <option value="" disabled>请选择城市</option>
+                  {POPULAR_CITIES.map(city => (
+                    <option key={city.value} value={city.value}>
+                      {city.label}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                  <ChevronDown size={20} />
+                </div>
+              </div>
 
               <button
                 onClick={handleManualCitySubmit}
@@ -516,6 +522,65 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
           </div>
         </div>
       )}
+
+      {/* Share Modal */}
+      {showShareModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center animate-[fadeIn_0.2s] p-4" onClick={() => setShowShareModal(null)}>
+          <div className="bg-transparent w-full max-w-sm flex flex-col items-center" onClick={e => e.stopPropagation()}>
+
+            {/* Generated Image Preview */}
+            <div className="relative w-full rounded-2xl overflow-hidden shadow-2xl mb-6 bg-white min-h-[400px] flex items-center justify-center">
+              {isGeneratingImage ? (
+                <div className="flex flex-col items-center text-gray-400">
+                  <RefreshCw className="animate-spin mb-2" size={32} />
+                  <span className="text-sm font-bold">正在生成海报...</span>
+                </div>
+              ) : generatedShareImage ? (
+                <img src={generatedShareImage} alt="Share Card" className="w-full h-auto" />
+              ) : (
+                <div className="text-red-500 font-bold">生成失败</div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-col w-full gap-3">
+              <p className="text-white/80 text-center text-sm font-medium mb-2">
+                长按上方图片保存，或点击下方按钮
+              </p>
+
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setShowShareModal(null)}
+                  className="bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl font-bold backdrop-blur-md transition-colors"
+                >
+                  关闭
+                </button>
+                <button
+                  onClick={() => {
+                    if (generatedShareImage) {
+                      const link = document.createElement('a');
+                      link.href = generatedShareImage;
+                      link.download = `city666-news-${showShareModal.id}.png`;
+                      link.click();
+                    }
+                  }}
+                  className="bg-brand-600 hover:bg-brand-500 text-white py-3 rounded-xl font-bold shadow-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  <Share2 size={18} />
+                  保存图片
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hidden Share Card for Generation */}
+      <div className="fixed left-[-9999px] top-0 pointer-events-none">
+        {showShareModal && (
+          <ShareCard ref={shareCardRef} item={showShareModal} />
+        )}
+      </div>
     </div>
   );
 };
