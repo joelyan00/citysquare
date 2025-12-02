@@ -717,6 +717,11 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate, isDarkMode, tog
                             <textarea
                               placeholder="写下你的评论..."
                               value={newCommentContent}
+                              onFocus={() => {
+                                if (!user && onNavigate) {
+                                  onNavigate(ViewState.LOGIN);
+                                }
+                              }}
                               onChange={e => setNewCommentContent(e.target.value)}
                               rows={2}
                               className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm text-gray-900 dark:text-white placeholder-gray-400 resize-none outline-none"

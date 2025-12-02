@@ -2,8 +2,10 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { NewsCategory, NewsItem, ForumPost, AdItem } from "../types";
 import { supabase, supabaseUrl } from "./supabaseClient";
 import { ConfigService } from "./configService";
+import { GoogleSearchService } from "./googleSearchService";
 
 const apiKey = process.env.API_KEY || '';
+console.log(`[GeminiService] Initializing with Key: ${apiKey ? (apiKey.slice(0, 4) + '...' + apiKey.slice(-4)) : 'MISSING'}`);
 const ai = new GoogleGenAI({ apiKey });
 
 // Helper to map DB snake_case to Frontend camelCase
@@ -134,7 +136,7 @@ export const getCityNameFromCoordinates = async (lat: number, lon: number): Prom
   if (!apiKey) return "本地";
 
   try {
-    const response = await generateWithRetry("gemini-2.5-flash", {
+    const response = await generateWithRetry("gemini-2.0-flash", {
       contents: `What city is at latitude ${lat} and longitude ${lon}? Return ONLY the city name in Chinese (Simplified). Do not include 'City' or 'Shi' suffix if natural. e.g. 'Beijing', 'Toronto'.`,
       config: {
         responseMimeType: "application/json",
@@ -273,6 +275,23 @@ const generateNewsImage = async (headline: string, category: string): Promise<st
   return undefined;
 };
 
+// Helper: Check if URL is likely a deep link (not a homepage)
+const isDeepLink = (url: string): boolean => {
+  try {
+    const u = new URL(url);
+    // Reject root paths
+    if (u.pathname === '/' || u.pathname === '') return false;
+    // Reject common top-level paths
+    const badPaths = ['/news', '/home', '/index', '/en', '/zh', '/category', '/articles'];
+    if (badPaths.includes(u.pathname.replace(/\/$/, ''))) return false;
+    // Deep links usually have longer paths or query parameters
+    return u.pathname.length > 10 || u.search.length > 5;
+  } catch (e) {
+    return false;
+  }
+};
+
+
 export const fetchNewsFromAI = async (category: string, context?: string): Promise<NewsItem[]> => {
   if (!apiKey) {
     console.warn("No API Key");
@@ -339,127 +358,162 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
     }
   }
 
-  // Add Authoritative Sources to Keywords
-  if (category === NewsCategory.CANADA) {
-    keywords += ", CTV News, CBC, Global News, CP24";
-  } else if (category === NewsCategory.USA) {
-    keywords += ", CNN, NBC News, New York Times, Washington Post";
-  } else if (category === NewsCategory.INTERNATIONAL) {
-    keywords += ", CNN, BBC, Reuters, AP News";
+  // Authoritative Source Filters
+  const SOURCE_FILTERS: Record<string, string> = {
+    [NewsCategory.CHINA]: "site:xinhuanet.com OR site:people.com.cn OR site:chinanews.com.cn OR site:caixin.com OR site:thepaper.cn",
+    [NewsCategory.CANADA]: "site:cbc.ca OR site:ctvnews.ca OR site:globalnews.ca OR site:canada.ca OR site:cp24.com",
+    [NewsCategory.USA]: "site:cnn.com OR site:nytimes.com OR site:washingtonpost.com OR site:wsj.com OR site:reuters.com OR site:apnews.com OR site:usa.gov",
+    [NewsCategory.INTERNATIONAL]: "site:cnn.com OR site:bbc.com OR site:reuters.com OR site:apnews.com OR site:aljazeera.com",
+    "TECH": "site:techcrunch.com OR site:theverge.com OR site:wired.com OR site:arstechnica.com OR site:36kr.com",
+
+    // Local News Filters
+    [NewsCategory.GTA]: "site:thestar.com OR site:cp24.com OR site:toronto.ca OR site:cbc.ca/news/canada/toronto OR site:torontosun.com",
+    [NewsCategory.VANCOUVER]: "site:vancouversun.com OR site:vancouver.ca OR site:cbc.ca/news/canada/british-columbia OR site:theprovince.com OR site:ctvnews.ca/vancouver",
+    [NewsCategory.MONTREAL]: "site:montrealgazette.com OR site:montreal.ca OR site:cbc.ca/news/canada/montreal OR site:ctvnews.ca/montreal",
+    [NewsCategory.CALGARY]: "site:calgaryherald.com OR site:calgary.ca OR site:cbc.ca/news/canada/calgary OR site:ctvnews.ca/calgary",
+    [NewsCategory.EDMONTON]: "site:edmontonjournal.com OR site:edmonton.ca OR site:cbc.ca/news/canada/edmonton OR site:ctvnews.ca/edmonton",
+    [NewsCategory.WATERLOO]: "site:therecord.com OR site:regionofwaterloo.ca OR site:cbc.ca/news/canada/kitchener-waterloo OR site:kitchener.ca OR site:waterloo.ca",
+    [NewsCategory.WINDSOR]: "site:windsorstar.com OR site:citywindsor.ca OR site:cbc.ca/news/canada/windsor OR site:ctvnews.ca/windsor",
+    [NewsCategory.LONDON]: "site:lfpress.com OR site:london.ca OR site:cbc.ca/news/canada/london OR site:ctvnews.ca/london"
+  };
+
+  // Append source filter if available
+  let sourceFilter = "";
+  if (SOURCE_FILTERS[category]) {
+    sourceFilter = SOURCE_FILTERS[category];
+  } else if (keywords.toLowerCase().includes('tech') || keywords.toLowerCase().includes('technology')) {
+    sourceFilter = SOURCE_FILTERS["TECH"];
   }
 
-  const systemInstruction = `You are a professional journalist for "City666".
-  Your task is to search for real-time news about "${topic}".
-  Time Window: Past ${timeWindow}.
-  Article Count: Try to find ${articleCount} items.
-  Keywords to focus on: ${keywords}.
-  
-  For LOCAL news (including specific cities), you MUST search for "Official City Hall Announcements" for ${topic} and include them.
-  
-  CRITICAL FOR LOCAL NEWS:
-  - The news MUST be specifically about "${topic}".
-  - Do NOT include general national news (e.g. Federal Customs, National Holidays) unless it specifically mentions "${topic}".
-  - Do NOT include international news.
-  - If you cannot find enough specific local news, return fewer items. Quality > Quantity.
-
-  AUTHORITATIVE SOURCES PRIORITY:
-  - For Canada: Prioritize CTV, CBC, Global News.
-  - For USA: Prioritize CNN, NBC, NYT.
-  - For International: Prioritize CNN, BBC, Reuters.
-  - Always try to find the original report from these major outlets.
-
-  Step 1: SEARCH for trending news URLs first.
-  Step 2: SELECT unique, diverse stories (Sports, Politics, Tech, Heartwarming, Official Notices).
-  Step 3: Write a deep, narrative article (4 paragraphs) for each item.
-       - **FORMAT REQUIREMENT**: Start the content with "据 [Source Name] 报道，".
-       - Paragraph 1: The Core Event (What happened, Who, When, Where).
-       - Paragraph 2: Background & Context (History, causes, detailed process).
-       - Paragraph 3: Viewpoints & Analysis (Naturally integrate expert opinions, quotes, or public sentiment/analysis).
-       - Paragraph 4: Impact & Future (Consequences, potential impact).
-       - **ENDING REQUIREMENT**: Append the source link at the very end of the content in this format: "(Link: [Source URL])".
-    
-  IMPORTANT:
-  - Do NOT use labels like [Time], [Location], **Title**.
-  - Write naturally in CHINESE (Simplified).
-  - Keep proper nouns (People names, City names, Street names) in ORIGINAL English (or local language) where appropriate for clarity.
-  - "source_name" must be the specific publisher (e.g. 'The Star', 'BBC').
-  - "source_url" MUST be a direct deep link to the specific news article found in search, NOT a home page.
-  
-  Output JSON Array:
-  [{ "title": "", "summary": "", "content": "", "source_name": "", "source_url": "", "image_url": "URL of the actual news image if found", "youtube_url": "" }]
-  
-  CRITICAL INSTRUCTIONS FOR MEDIA:
-  1. IMAGES: You MUST try to extract the actual lead image URL from the search result. If found, put it in "image_url".
-  2. NO AI IMAGES: If no real image URL is found in the search results, leave "image_url" EMPTY (""). Do NOT invent URLs. Do NOT describe an image for generation.
-  3. YOUTUBE: If the news is related to a video or has a YouTube video, find the YouTube link and put it in "youtube_url".
-  4. DUPLICATES: Do not generate multiple items for the exact same story.
-  5. LINKS: If the news involves an application, registration, or official document, YOU MUST include the direct URL in the content (e.g. "Official Application Link: [URL]").`;
-
   try {
-    const searchContext = `Search for trending news about "${topic}" in the last ${timeWindow}. Focus on: ${keywords}. Return ${articleCount} items.`;
+    // Format keywords to be OR-separated if they exist to avoid over-restrictive AND search
+    const formattedKeywords = keywords
+      ? `(${keywords.split(',').map(k => k.trim()).join(' OR ')})`
+      : "";
 
-    const response = await generateWithRetry("gemini-2.5-flash", {
-      contents: searchContext,
+    // 1. Fetch Raw Search Results via Google Custom Search API
+    // Construct query with source filter if applicable
+    const searchQuery = sourceFilter
+      ? `${topic} news (${sourceFilter}) ${formattedKeywords}`
+      : `${topic} news ${formattedKeywords}`;
+
+    console.log(`[GoogleSearch] Query: ${searchQuery}`);
+
+    const searchResults = await GoogleSearchService.search(searchQuery, timeWindow);
+
+    if (!searchResults || searchResults.length === 0) {
+      console.warn("[GoogleSearch] No results found. Check API Key/CX or Query.");
+      return [];
+    }
+
+    // Filter results (Deep Link Check)
+    const validResults = searchResults.filter(item => isDeepLink(item.link));
+
+    // Limit to requested count
+    const limitedResults = validResults.slice(0, articleCount);
+
+    // 2. Prepare Context for Gemini (Send ID to map back later)
+    const articlesContext = limitedResults.map((item, index) => `
+      Item ID: ${index}
+      Title: ${item.title}
+      Snippet: ${item.snippet}
+    `).join('\n\n');
+
+    const systemInstruction = `You are a professional journalist for "City666".
+    Your task is to summarize the provided news items.
+    
+    INPUT: A list of news items with ID, Title, and Snippet.
+    OUTPUT: A JSON array of news objects.
+
+    RULES:
+    1. **Content**: Write a summary (approx 50-100 words) for each item. Capture the main points clearly.
+    2. **Language**: ALWAYS write Title and Content in **CHINESE (Simplified)**.
+    3. **ID**: You MUST return the exact **Item ID** provided in the input.
+    4. **Source**: Extract the source name from the Title (e.g. 'CBC', 'CTV').
+
+    Output JSON Format:
+    [{ "id": 0, "title": "Chinese Title", "summary": "Chinese Summary", "content": "Chinese Summary", "source_name": "Source" }]
+    `;
+
+    // 3. Generate Summaries with Gemini
+    const response = await generateWithRetry("gemini-2.0-flash", {
+      contents: `Here are the news items to summarize:\n${articlesContext}`,
       config: {
         systemInstruction,
-        tools: [{ googleSearch: {} }]
+        responseMimeType: "application/json"
       }
     });
 
     const jsonStr = cleanJsonString(response.text || "[]");
-    let items: any[] = [];
+    let aiItems: any[] = [];
 
     try {
-      items = JSON.parse(jsonStr);
+      aiItems = JSON.parse(jsonStr);
     } catch (e) {
       console.error("JSON Parse Error", e);
       return [];
     }
 
-    if (!Array.isArray(items)) return [];
+    if (!Array.isArray(aiItems)) return [];
 
     const finalItems: NewsItem[] = [];
 
-    for (const [index, item] of items.entries()) {
-      if (!item) continue;
+    for (const aiItem of aiItems) {
+      if (!aiItem || typeof aiItem.id === 'undefined') continue;
 
-      // Image generation logic
-      let imageUrl = item.image_url && isValidUrl(item.image_url) ? item.image_url : undefined;
+      // Map back to original search result using ID
+      const originalItem = limitedResults[aiItem.id];
+      if (!originalItem) continue;
 
+      let sourceUrl = originalItem.link;
+      let imageUrl: string | undefined = undefined;
+
+      // Helper to validate image URLs
+      const isValidImageUrl = (url: string | undefined): boolean => {
+        if (!url) return false;
+        if (!url.startsWith('http://') && !url.startsWith('https://')) return false;
+        if (url.includes('x-raw-image')) return false;
+        // Filter out known bad domains or patterns if needed
+        return true;
+      };
+
+      // Improved Image Extraction
+      // 1. Try og:image from metatags (Best Quality)
+      const ogImage = originalItem.pagemap?.metatags?.find(m => m['og:image'])?.['og:image'];
+      if (isValidImageUrl(ogImage)) {
+        imageUrl = ogImage;
+      }
+      // 2. Fallback to cse_image (Thumbnail)
+      else if (isValidImageUrl(originalItem.pagemap?.cse_image?.[0]?.src)) {
+        imageUrl = originalItem.pagemap.cse_image[0].src;
+      }
+
+      // 3. Fallback to AI Image Generation (only if no image found)
       if (!imageUrl) {
-        // Fallback to AI Image Generation + Supabase Upload
         try {
-          console.log(`Generating AI image for: ${item.title}`);
-          const base64Image = await generateNewsImage(item.title, category);
+          console.log(`Generating AI image for: ${aiItem.title}`);
+          const base64Image = await generateNewsImage(aiItem.title, category);
           if (base64Image) {
-            // Upload to Supabase
-            const filename = `ai_news/${Date.now()}_${index}.png`;
+            const filename = `ai_news/${Date.now()}_${aiItem.id}.png`;
             const supabaseUrl = await uploadImageToSupabase(base64Image, filename);
-            if (supabaseUrl) {
-              imageUrl = supabaseUrl;
-              console.log(`AI Image uploaded to Supabase: ${supabaseUrl}`);
-            }
+            if (supabaseUrl) imageUrl = supabaseUrl;
           }
         } catch (err) {
           console.error("Failed to generate/upload AI image:", err);
         }
       }
 
-      // Clean URL
-      let sourceUrl = isValidUrl(item.source_url) ? item.source_url : undefined;
-      if (sourceUrl) sourceUrl = sourceUrl.trim();
-
       finalItems.push({
-        id: `news-${category}-${Date.now()}-${index}`,
-        title: item.title,
-        summary: item.summary,
-        content: item.content,
+        id: `news-${category}-${Date.now()}-${aiItem.id}`,
+        title: aiItem.title,
+        summary: aiItem.summary,
+        content: aiItem.content,
         category,
         timestamp: Date.now(),
         imageUrl: imageUrl,
-        source: `CitySquare 整理自 ${item.source_name || '互联网'}`,
+        source: `CitySquare 整理自 ${aiItem.source_name || '互联网'}`,
         sourceUrl: sourceUrl,
-        youtubeUrl: item.youtube_url,
+        youtubeUrl: undefined, // Google Search API doesn't easily give this, ignore for now
         city: category === NewsCategory.LOCAL ? context : undefined
       });
     }
@@ -584,6 +638,10 @@ export const NewsDatabase = {
     const config = await ConfigService.get();
     let limit = 50;
 
+    // Default time limit: 48 hours
+    const timeLimitMs = 48 * 60 * 60 * 1000;
+    const cutoffTime = Date.now() - timeLimitMs;
+
     if (Object.values(NewsCategory).includes(category as NewsCategory)) {
       switch (category) {
         case NewsCategory.LOCAL:
@@ -606,7 +664,14 @@ export const NewsDatabase = {
       if (customCat) limit = customCat.retentionLimit || 50;
     }
 
-    // Get IDs of latest N items
+    // 1. Identify items to delete (Time-based)
+    const { data: timeExpiredItems } = await supabase
+      .from('news')
+      .select('id, image_url')
+      .eq('category', category)
+      .lt('timestamp', cutoffTime);
+
+    // 2. Identify items to delete (Count-based)
     const { data: keepIds } = await supabase
       .from('news')
       .select('id')
@@ -614,11 +679,49 @@ export const NewsDatabase = {
       .order('timestamp', { ascending: false })
       .limit(limit);
 
+    let countExpiredItems: any[] = [];
     if (keepIds && keepIds.length > 0) {
       const idsToKeep = keepIds.map(k => k.id);
-      // Delete items NOT in the keep list
-      await supabase.from('news').delete().eq('category', category).not('id', 'in', `(${idsToKeep.join(',')})`);
+      const { data: overflowItems } = await supabase
+        .from('news')
+        .select('id, image_url')
+        .eq('category', category)
+        .not('id', 'in', `(${idsToKeep.join(',')})`);
+
+      if (overflowItems) countExpiredItems = overflowItems;
     }
+
+    // Combine all items to delete
+    const allItemsToDelete = [...(timeExpiredItems || []), ...countExpiredItems];
+
+    // Deduplicate by ID
+    const uniqueDeleteItems = Array.from(new Map(allItemsToDelete.map(item => [item.id, item])).values());
+
+    if (uniqueDeleteItems.length === 0) return;
+
+    console.log(`[NewsDatabase] Cleaning up ${uniqueDeleteItems.length} expired items for category: ${category}`);
+
+    // 3. Delete Images from Storage (if AI generated)
+    for (const item of uniqueDeleteItems) {
+      if (item.image_url && item.image_url.includes('supabase') && item.image_url.includes('ai_news')) {
+        try {
+          // Extract filename from URL
+          // URL format: .../storage/v1/object/public/ai_news/filename.png
+          const parts = item.image_url.split('/ai_news/');
+          if (parts.length === 2) {
+            const filename = parts[1];
+            console.log(`[NewsDatabase] Deleting image from storage: ${filename}`);
+            await supabase.storage.from('ai_news').remove([filename]);
+          }
+        } catch (err) {
+          console.error(`[NewsDatabase] Failed to delete image for item ${item.id}`, err);
+        }
+      }
+    }
+
+    // 4. Delete Records from DB
+    const idsToDelete = uniqueDeleteItems.map(i => i.id);
+    await supabase.from('news').delete().in('id', idsToDelete);
   },
 
   getLastUpdateTime: async (category: string): Promise<number> => {
@@ -737,7 +840,7 @@ export const generateTrendingTopic = async (): Promise<ForumPost | null> => {
   console.log(`[City666 Forum] Generating topic: Cat="${selectedCat}", Style="${selectedType}"`);
 
   try {
-    const response = await generateWithRetry("gemini-2.5-flash", {
+    const response = await generateWithRetry("gemini-2.0-flash", {
       contents: `Generate a trending forum topic. 
       Topic Category: ${selectedCat}. 
       Question Style: ${selectedType}. 
@@ -1050,7 +1153,7 @@ export const AdDatabase = {
 export const generateAdCopy = async (rawText: string, productName: string) => {
   if (!apiKey) return { title: productName, content: rawText };
   try {
-    const response = await generateWithRetry("gemini-2.5-flash", {
+    const response = await generateWithRetry("gemini-2.0-flash", {
       contents: `Refine this ad content for "${productName}". 
        Original: "${rawText}". 
        Goal: Make it catchy, professional, and persuasive.
@@ -1066,7 +1169,7 @@ export const generateAdCopy = async (rawText: string, productName: string) => {
 export const polishText = async (text: string): Promise<string> => {
   if (!apiKey) return text;
   try {
-    const response = await generateWithRetry("gemini-2.5-flash", {
+    const response = await generateWithRetry("gemini-2.0-flash", {
       contents: `You are a professional editor. Your task is to polish the following text to make it more engaging, professional, and grammatically correct.
       
       CRITICAL INSTRUCTION:

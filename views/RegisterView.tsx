@@ -123,7 +123,7 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onNavigate }) => {
                 </p>
             </div>
 
-            <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+            <div className="mt-8 w-[80%] mx-auto sm:w-full sm:max-w-md">
                 <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
                     <form className="space-y-6" onSubmit={handleRegister}>
 
@@ -176,7 +176,7 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onNavigate }) => {
                                     required
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
-                                    className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md py-2 border"
+                                    className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 h-12 sm:text-sm border-gray-300 rounded-md border"
                                     placeholder={role === UserRole.SERVICE_PROVIDER ? "例如：专业水电维修" : "例如：张三"}
                                 />
                             </div>
@@ -198,7 +198,7 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onNavigate }) => {
                                     required
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md py-2 border"
+                                    className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 h-12 sm:text-sm border-gray-300 rounded-md border"
                                     placeholder="you@example.com"
                                 />
                             </div>
@@ -220,7 +220,7 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onNavigate }) => {
                                     required
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-10 sm:text-sm border-gray-300 rounded-md py-2 border"
+                                    className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-10 h-12 sm:text-sm border-gray-300 rounded-md border"
                                     placeholder="••••••••"
                                 />
                                 <button
@@ -249,7 +249,7 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onNavigate }) => {
                                     required
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
-                                    className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-10 sm:text-sm border-gray-300 rounded-md py-2 border"
+                                    className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-10 h-12 sm:text-sm border-gray-300 rounded-md border"
                                     placeholder="••••••••"
                                 />
                                 <button

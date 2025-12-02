@@ -62,14 +62,23 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
     const china = await NewsDatabase.getLastUpdateTime(NewsCategory.CHINA);
     const forum = await ForumDatabase.getLastUpdateTime();
 
-    setSyncStatus({
+    const statusObj: Record<string, number> = {
       [NewsCategory.LOCAL]: local,
       [NewsCategory.CANADA]: canada,
       [NewsCategory.USA]: usa,
       [NewsCategory.INTERNATIONAL]: international,
       [NewsCategory.CHINA]: china,
       'FORUM': forum
-    });
+    };
+
+    // Load sync status for custom categories
+    if (config?.news.customCategories) {
+      for (const cat of config.news.customCategories) {
+        statusObj[cat.id] = await NewsDatabase.getLastUpdateTime(cat.id);
+      }
+    }
+
+    setSyncStatus(statusObj);
   };
 
   const loadUsers = async () => {
@@ -106,7 +115,7 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
     setTimeout(() => setActionStatus(''), 3000);
   };
 
-  const handleTriggerNews = async (category: NewsCategory) => {
+  const handleTriggerNews = async (category: string) => {
     setLoading(true);
     showStatus(`正在抓取 ${category} 新闻...`);
     await NewsCrawler.forceRefresh(category);
@@ -266,26 +275,123 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
         {/* CONFIG TAB */}
         {activeTab === 'config' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Data Sync Status */}
+            {/* Data Sync Status & Refresh Config */}
             <section className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
               <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                <RefreshCw size={20} className="mr-2 text-blue-500" /> 数据同步状态
+                <RefreshCw size={20} className="mr-2 text-blue-500" /> 新闻抓取配置
               </h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {Object.entries(syncStatus).map(([key, time]) => (
-                  <div key={key} className="bg-gray-50 p-3 rounded-lg border border-gray-100">
-                    <div className="text-xs font-bold text-gray-500 uppercase mb-1">{key}</div>
-                    <div className="text-sm font-mono text-gray-800">
-                      {time > 0 ? new Date(time).toLocaleString() : '无数据'}
-                    </div>
-                  </div>
-                ))}
+
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分类</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">上次更新</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">抓取间隔 (小时)</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {/* Static Categories */}
+                    {[
+                      { id: NewsCategory.LOCAL, label: '本地新闻', intervalKey: 'localRefreshInterval' },
+                      { id: NewsCategory.CANADA, label: '加拿大新闻', intervalKey: 'canadaRefreshInterval' },
+                      { id: NewsCategory.USA, label: '美国新闻', intervalKey: 'usaRefreshInterval' },
+                      { id: NewsCategory.CHINA, label: '中国新闻', intervalKey: 'chinaRefreshInterval' },
+                      { id: NewsCategory.INTERNATIONAL, label: '国际新闻', intervalKey: 'intlRefreshInterval' },
+                    ].map((item) => (
+                      <tr key={item.id}>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.label}</td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
+                          {syncStatus[item.id] > 0 ? new Date(syncStatus[item.id]).toLocaleString() : '无数据'}
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <div className="flex items-center">
+                            <input
+                              type="number"
+                              min="1"
+                              value={Math.round((config.news[item.intervalKey as keyof typeof config.news] as number) / 60)}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value) || 1;
+                                setConfig({
+                                  ...config,
+                                  news: {
+                                    ...config.news,
+                                    [item.intervalKey]: val * 60
+                                  }
+                                });
+                              }}
+                              className="w-16 border border-gray-300 rounded px-2 py-1 text-center mr-2"
+                            />
+                            <span className="text-xs text-gray-400">小时</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <button
+                            onClick={() => handleTriggerNews(item.id as NewsCategory)}
+                            className="text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 px-3 py-1 rounded transition-colors"
+                          >
+                            立即抓取
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+
+                    {/* Custom Categories */}
+                    {config.news.customCategories?.map((cat) => (
+                      <tr key={cat.id} className="bg-purple-50/50">
+                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-purple-900 flex items-center">
+                          <List size={14} className="mr-2 text-purple-500" />
+                          {cat.name}
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
+                          {syncStatus[cat.id] > 0 ? new Date(syncStatus[cat.id]).toLocaleString() : '无数据'}
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <div className="flex items-center">
+                            <input
+                              type="number"
+                              min="1"
+                              value={Math.round((cat.refreshInterval || 60) / 60)}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value) || 1;
+                                const updatedCats = config.news.customCategories?.map(c =>
+                                  c.id === cat.id ? { ...c, refreshInterval: val * 60 } : c
+                                );
+                                setConfig({
+                                  ...config,
+                                  news: {
+                                    ...config.news,
+                                    customCategories: updatedCats
+                                  }
+                                });
+                              }}
+                              className="w-16 border border-purple-200 rounded px-2 py-1 text-center mr-2 focus:ring-purple-500 focus:border-purple-500"
+                            />
+                            <span className="text-xs text-gray-400">小时</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <button
+                            onClick={() => handleTriggerNews(cat.id)}
+                            className="text-purple-600 hover:text-purple-900 hover:bg-purple-50 px-3 py-1 rounded transition-colors"
+                          >
+                            立即抓取
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-              <div className="mt-6 flex flex-wrap gap-3">
-                <button onClick={() => handleTriggerNews(NewsCategory.LOCAL)} className="btn-secondary text-xs">抓取本地新闻</button>
-                <button onClick={() => handleTriggerNews(NewsCategory.CANADA)} className="btn-secondary text-xs">抓取加拿大新闻</button>
-                <button onClick={handleTriggerForum} className="btn-secondary text-xs">生成论坛话题</button>
-                <button onClick={handleClearData} className="ml-auto text-red-500 hover:bg-red-50 px-3 py-1 rounded text-xs font-bold transition-colors">清空所有数据</button>
+
+              <div className="mt-6 flex flex-wrap gap-3 border-t border-gray-100 pt-4">
+                <button onClick={handleTriggerForum} className="btn-secondary text-xs flex items-center">
+                  <Zap size={14} className="mr-1" /> 生成论坛话题
+                </button>
+                <button onClick={handleClearData} className="ml-auto text-red-500 hover:bg-red-50 px-3 py-1 rounded text-xs font-bold transition-colors flex items-center">
+                  <Trash2 size={14} className="mr-1" /> 清空所有数据
+                </button>
               </div>
             </section>
 

@@ -242,10 +242,7 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
   const renderList = () => {
     const mixedList: React.ReactNode[] = [];
     newsData.forEach((item, index) => {
-      // First item is Hero, others are Standard
-      const variant = index === 0 ? 'hero' : 'standard';
-
-      // Render News Card
+      // Render News Card (Unified Layout)
       mixedList.push(
         <NewsCard
           key={item.id}
@@ -256,7 +253,6 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
           expandedNewsId={expandedNewsId}
           toggleExpand={toggleExpand}
           onShare={handleShare}
-          variant={variant}
         />
       );
 
@@ -304,24 +300,23 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
           {/* Top Bar: Menu - Logo - Search - Profile */}
           <div className="px-4 py-3 flex justify-between items-center gap-4">
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1.5">
-                <span className="text-2xl font-medium text-gray-700 dark:text-white tracking-tight">City666</span>
-                <span className="text-2xl font-light text-gray-700 dark:text-white tracking-tight">News</span>
+              <div className="flex items-baseline gap-1 select-none">
+                <span className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 tracking-tighter">City666</span>
+                <span className="text-sm font-bold text-gray-400 dark:text-gray-500 tracking-widest uppercase">News</span>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <button className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
-                <Search size={24} />
-              </button>
+              {/* Search Button Removed */}
 
               {/* Theme Toggle */}
               {toggleTheme && (
                 <button
                   onClick={toggleTheme}
-                  className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                 >
-                  {isDarkMode ? <Sun size={24} /> : <Moon size={24} />}
+                  {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+                  <span className="text-xs font-bold">切换背景</span>
                 </button>
               )}
 

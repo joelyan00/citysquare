@@ -31,6 +31,22 @@ const LoginView: React.FC<LoginViewProps> = ({ onNavigate }) => {
         }
     };
 
+    const getErrorMessage = (error: any) => {
+        const message = error.message || '';
+        // Supabase returns "Invalid login credentials" for both wrong email and wrong password for security.
+        // We can't easily distinguish them without compromising security (user enumeration).
+        if (message.includes('Invalid login credentials')) {
+            return '账号或密码错误 (请检查邮箱拼写或密码)';
+        }
+        if (message.includes('Email not confirmed')) {
+            return '邮箱未验证，请检查您的收件箱';
+        }
+        if (message.includes('User not found')) {
+            return '该邮箱未注册';
+        }
+        return '登录失败，请稍后重试';
+    };
+
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -47,7 +63,8 @@ const LoginView: React.FC<LoginViewProps> = ({ onNavigate }) => {
             // Explicitly navigate to News
             onNavigate(ViewState.NEWS);
         } catch (err: any) {
-            setError(err.message || '登录失败，请检查邮箱和密码');
+            console.error('Login error:', err);
+            setError(getErrorMessage(err));
         } finally {
             setLoading(false);
         }
@@ -75,14 +92,14 @@ const LoginView: React.FC<LoginViewProps> = ({ onNavigate }) => {
                 </p>
             </div>
 
-            <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+            <div className="mt-8 w-[80%] mx-auto sm:w-full sm:max-w-md">
                 <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
                     <form className="space-y-6" onSubmit={handleLogin}>
                         <div>
                             <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                                 邮箱地址
                             </label>
-                            <div className="mt-1 relative rounded-md shadow-sm">
+                            <div className="mt-1 relative rounded-2xl shadow-sm">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <Mail className="h-5 w-5 text-gray-400" />
                                 </div>
@@ -94,7 +111,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onNavigate }) => {
                                     required
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md py-2 border"
+                                    className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 h-12 sm:text-sm border-gray-300 rounded-2xl border"
                                     placeholder="you@example.com"
                                 />
                             </div>
@@ -104,7 +121,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onNavigate }) => {
                             <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                                 密码
                             </label>
-                            <div className="mt-1 relative rounded-md shadow-sm">
+                            <div className="mt-1 relative rounded-2xl shadow-sm">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <Lock className="h-5 w-5 text-gray-400" />
                                 </div>
@@ -116,7 +133,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onNavigate }) => {
                                     required
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-10 sm:text-sm border-gray-300 rounded-md py-2 border"
+                                    className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-10 h-12 sm:text-sm border-gray-300 rounded-2xl border"
                                     placeholder="••••••••"
                                 />
                                 <button
@@ -152,7 +169,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onNavigate }) => {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-2xl shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
                             >
                                 {loading ? (
                                     <Loader2 className="animate-spin h-5 w-5" />
@@ -179,7 +196,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onNavigate }) => {
                             <button
                                 onClick={handleGoogleLogin}
                                 disabled={loading}
-                                className="w-full flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
+                                className="w-full flex justify-center items-center py-2 px-4 border border-gray-300 rounded-2xl shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
                             >
                                 <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
                                     <path
@@ -207,7 +224,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onNavigate }) => {
                     <div className="mt-6">
                         <button
                             onClick={() => onNavigate(ViewState.NEWS)}
-                            className="w-full flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
+                            className="w-full flex justify-center items-center py-2 px-4 border border-gray-300 rounded-2xl shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
                         >
                             <ArrowLeft className="h-4 w-4 mr-2" />
                             返回首页
