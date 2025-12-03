@@ -521,9 +521,7 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate, isDarkMode, tog
                   {post.title}
                 </h3>
                 <div className={`text-gray-700 dark:text-gray-300 text-base leading-relaxed whitespace-pre-wrap ${isExpanded ? '' : 'line-clamp-3'}`}>
-                  {isExpanded ? (
-                    post.content ? polishText(post.content) : post.content // Just display content, polish is manual
-                  ) : post.content}
+                  {post.content}
                 </div>{/* Video Player */}
                 {post.videoUrl && (
                   <div className="mb-6 rounded-xl overflow-hidden shadow-sm">
@@ -600,16 +598,18 @@ const ForumView: React.FC<ForumViewProps> = ({ city, onNavigate, isDarkMode, tog
                     </button>
                   </div>
 
-                  <button
-                    onClick={(e) => toggleExpand(post.id, e)}
-                    className="flex items-center text-indigo-600 font-extrabold text-base bg-indigo-50 px-4 py-2 rounded-xl active:scale-95 transition-transform"
-                  >
-                    {isExpanded ? (
-                      <>收起 <ChevronUp size={18} className="ml-1" strokeWidth={3} /></>
-                    ) : (
-                      <>展开 <ChevronDown size={18} className="ml-1" strokeWidth={3} /></>
-                    )}
-                  </button>
+                  {post.content && post.content.length > 100 && (
+                    <button
+                      onClick={(e) => toggleExpand(post.id, e)}
+                      className="flex items-center text-indigo-600 font-extrabold text-base bg-indigo-50 px-4 py-2 rounded-xl active:scale-95 transition-transform"
+                    >
+                      {isExpanded ? (
+                        <>收起 <ChevronUp size={18} className="ml-1" strokeWidth={3} /></>
+                      ) : (
+                        <>展开 <ChevronDown size={18} className="ml-1" strokeWidth={3} /></>
+                      )}
+                    </button>
+                  )}
                 </div>
 
                 {/* Comments Section */}

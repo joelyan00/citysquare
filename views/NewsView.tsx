@@ -22,8 +22,8 @@ const POPULAR_CITIES = [
 const staticCategoryLabels: Partial<Record<NewsCategory, string>> = {
   [NewsCategory.CANADA]: '加拿大',
   [NewsCategory.USA]: '美国',
-  [NewsCategory.INTERNATIONAL]: '国际',
-  [NewsCategory.CHINA]: '中国',
+  [NewsCategory.INTERNATIONAL]: '东亚', // Was International
+  [NewsCategory.CHINA]: '科技',      // Was China
 };
 
 const CATEGORY_STORAGE_KEY = 'urbanhub_active_category';

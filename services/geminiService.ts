@@ -244,8 +244,11 @@ export const uploadImageToImgur = async (file: Blob | File): Promise<string | nu
   }
 };
 
+// Global flag to track if image generation is available
+let isImageGenerationAvailable = true;
+
 const generateNewsImage = async (headline: string, category: string): Promise<string | undefined> => {
-  if (!apiKey) return undefined;
+  if (!apiKey || !isImageGenerationAvailable) return undefined;
 
   let visualContext = "";
   if ([NewsCategory.USA, NewsCategory.CANADA, NewsCategory.INTERNATIONAL].includes(category as any)) {
@@ -262,15 +265,21 @@ const generateNewsImage = async (headline: string, category: string): Promise<st
       ${visualContext}
       The image should capture the essence of the event. NO COLLAGE. Photorealistic style.` }]
       },
-    });
+    }, 0); // Set retries to 0 to fail fast
 
     for (const part of response.candidates?.[0]?.content?.parts || []) {
       if (part.inlineData) {
         return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
       }
     }
-  } catch (error) {
-    console.warn("Image generation failed:", error);
+  } catch (error: any) {
+    // If 404 (Model not found) or 403 (Permission denied), disable future attempts
+    if (error.message?.includes('404') || error.message?.includes('not found') || error.status === 404) {
+      console.warn("[GeminiService] Imagen model not found or accessible. Disabling AI image generation.");
+      isImageGenerationAvailable = false;
+    } else {
+      console.warn("Image generation failed (skipping):", error.message || error);
+    }
   }
   return undefined;
 };
@@ -288,6 +297,50 @@ const isDeepLink = (url: string): boolean => {
     return u.pathname.length > 10 || u.search.length > 5;
   } catch (e) {
     return false;
+  }
+};
+
+// Helper: Fetch Article Content (Node.js only)
+const fetchArticleContent = async (url: string): Promise<string | null> => {
+  if (typeof window !== 'undefined') return null; // Only run in Node
+
+  try {
+    // Dynamic import cheerio to avoid bundling issues in browser
+    const cheerioModule = await import('cheerio') as any;
+    const load = cheerioModule.load || cheerioModule.default?.load;
+
+    if (!load) {
+      console.error("Failed to load cheerio");
+      return null;
+    }
+
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
+    });
+
+    if (!response.ok) return null;
+
+    const html = await response.text();
+    const $ = load(html);
+
+    // Remove unwanted elements
+    $('script, style, nav, header, footer, .ad, .advertisement, .menu, .sidebar').remove();
+
+    // Extract text from paragraphs
+    let text = '';
+    $('p').each((i, el) => {
+      const pText = $(el).text().trim();
+      if (pText.length > 20) { // Filter out short snippets
+        text += pText + '\n\n';
+      }
+    });
+
+    return text.trim();
+  } catch (e) {
+    console.error(`Error fetching content from ${url}:`, e);
+    return null;
   }
 };
 
@@ -340,13 +393,17 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
     timeWindow = config.news.usaTimeWindow || "24 hours";
     if (config.news.usaKeywords) keywords = config.news.usaKeywords;
   } else if (category === NewsCategory.CHINA) {
-    topic = 'China';
+    // REFACTORED: China -> Tech News
+    topic = 'New Technology AI Space Robotics Bio-medicine';
     articleCount = config.news.chinaArticleCount || 10;
     timeWindow = config.news.chinaTimeWindow || "24 hours";
+    keywords = "Artificial Intelligence, Space Technology, Robotics, Bio-medicine, Frontier Technology, AI, SpaceX, Biotech, Quantum Computing";
   } else if (category === NewsCategory.INTERNATIONAL) {
-    topic = 'Global International News';
+    // REFACTORED: International -> East Asia News
+    topic = 'East Asia News China Japan Korea Taiwan Hong Kong';
     articleCount = config.news.intlArticleCount || 8;
-    timeWindow = config.news.intlTimeWindow || "48 hours";
+    timeWindow = config.news.intlTimeWindow || "24 hours";
+    keywords = "Military, Finance, Civil Society, Medical, Education, China-Japan Relations, Cross-strait Relations, Economy";
   } else {
     // Check Custom Categories
     const customCat = config.news.customCategories?.find(c => c.id === category);
@@ -354,17 +411,24 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
       topic = customCat.topic;
       articleCount = customCat.articleCount || 10;
       timeWindow = customCat.timeWindow || "24 hours";
-      if (customCat.keywords) keywords = `${keywords}, ${customCat.keywords}`;
+      // Overwrite keywords for custom categories to be specific
+      if (customCat.keywords) keywords = customCat.keywords;
     }
   }
 
   // Authoritative Source Filters
   const SOURCE_FILTERS: Record<string, string> = {
-    [NewsCategory.CHINA]: "site:xinhuanet.com OR site:people.com.cn OR site:chinanews.com.cn OR site:caixin.com OR site:thepaper.cn",
+    // REFACTORED: CHINA -> TECH Sources
+    [NewsCategory.CHINA]: "site:techcrunch.com OR site:theverge.com OR site:wired.com OR site:arstechnica.com OR site:36kr.com OR site:mit.edu OR site:nature.com OR site:science.org OR site:qbitai.com OR site:jiqizhixin.com",
+
     [NewsCategory.CANADA]: "site:cbc.ca OR site:ctvnews.ca OR site:globalnews.ca OR site:canada.ca OR site:cp24.com",
     [NewsCategory.USA]: "site:cnn.com OR site:nytimes.com OR site:washingtonpost.com OR site:wsj.com OR site:reuters.com OR site:apnews.com OR site:usa.gov",
-    [NewsCategory.INTERNATIONAL]: "site:cnn.com OR site:bbc.com OR site:reuters.com OR site:apnews.com OR site:aljazeera.com",
-    "TECH": "site:techcrunch.com OR site:theverge.com OR site:wired.com OR site:arstechnica.com OR site:36kr.com",
+
+    // REFACTORED: INTERNATIONAL -> EAST ASIA Sources
+    // Mainland: 163.com; Taiwan: chinatimes, udn, ltn, cna; SG: nanyang, zaobao; JP: asahi, yahoo.co.jp; KR: chosun
+    [NewsCategory.INTERNATIONAL]: "site:163.com OR site:chinatimes.com OR site:udn.com OR site:ltn.com.tw OR site:cna.com.tw OR site:nanyang.com OR site:zaobao.com.sg OR site:asahi.com OR site:yahoo.co.jp OR site:chosun.com OR site:cn.chosun.com OR site:asahichinese-f.com",
+
+    // "TECH": "site:techcrunch.com OR site:theverge.com OR site:wired.com OR site:arstechnica.com OR site:36kr.com", // Removed implicit tech filter
 
     // Local News Filters
     [NewsCategory.GTA]: "site:thestar.com OR site:cp24.com OR site:toronto.ca OR site:cbc.ca/news/canada/toronto OR site:torontosun.com",
@@ -381,8 +445,6 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
   let sourceFilter = "";
   if (SOURCE_FILTERS[category]) {
     sourceFilter = SOURCE_FILTERS[category];
-  } else if (keywords.toLowerCase().includes('tech') || keywords.toLowerCase().includes('technology')) {
-    sourceFilter = SOURCE_FILTERS["TECH"];
   }
 
   try {
@@ -393,9 +455,10 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
 
     // 1. Fetch Raw Search Results via Google Custom Search API
     // Construct query with source filter if applicable
+    const newsSuffix = (category === NewsCategory.CHINA || category === NewsCategory.INTERNATIONAL) ? '新闻' : 'news';
     const searchQuery = sourceFilter
-      ? `${topic} news (${sourceFilter}) ${formattedKeywords}`
-      : `${topic} news ${formattedKeywords}`;
+      ? `${topic} ${newsSuffix} (${sourceFilter}) ${formattedKeywords}`
+      : `${topic} ${newsSuffix} ${formattedKeywords}`;
 
     console.log(`[GoogleSearch] Query: ${searchQuery}`);
 
@@ -409,27 +472,67 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
     // Filter results (Deep Link Check)
     const validResults = searchResults.filter(item => isDeepLink(item.link));
 
-    // Limit to requested count
-    const limitedResults = validResults.slice(0, articleCount);
+    // Limit to requested count (plus buffer for deduplication)
+    const candidates = validResults.slice(0, articleCount * 2);
+
+    // 1.5 Deduplication Check (URL based)
+    const candidateUrls = candidates.map(c => c.link);
+    const existingUrls = await NewsDatabase.checkExists(candidateUrls);
+
+    const newResults = candidates.filter(c => !existingUrls.has(c.link));
+
+    if (newResults.length === 0) {
+      console.log("[GeminiService] All found items already exist in DB. Skipping.");
+      return [];
+    }
+
+    const limitedResults = newResults.slice(0, articleCount);
 
     // 2. Prepare Context for Gemini (Send ID to map back later)
-    const articlesContext = limitedResults.map((item, index) => `
+    // Parallel fetch content if in Node environment
+    const isNode = typeof window === 'undefined';
+
+    const articlesContextPromises = limitedResults.map(async (item, index) => {
+      let contextText = item.snippet;
+
+      // Try to get full content if in Node
+      if (isNode) {
+        try {
+          const fullContent = await fetchArticleContent(item.link);
+          if (fullContent && fullContent.length > 200) {
+            contextText = fullContent.slice(0, 5000); // Limit context window
+          }
+        } catch (e) {
+          console.warn(`Failed to fetch content for ${item.link}, falling back to snippet.`);
+        }
+      } else {
+        // Fallback to og:description in browser
+        const ogDescription = item.pagemap?.metatags?.find(m => m['og:description'])?.['og:description'];
+        if (ogDescription && ogDescription.length > item.snippet.length) {
+          contextText = ogDescription;
+        }
+      }
+
+      return `
       Item ID: ${index}
       Title: ${item.title}
-      Snippet: ${item.snippet}
-    `).join('\n\n');
+      Content: ${contextText}
+    `});
+
+    const articlesContext = (await Promise.all(articlesContextPromises)).join('\n\n');
 
     const systemInstruction = `You are a professional journalist for "City666".
     Your task is to summarize the provided news items.
     
-    INPUT: A list of news items with ID, Title, and Snippet.
+    INPUT: A list of news items with ID, Title, and Content.
     OUTPUT: A JSON array of news objects.
 
     RULES:
-    1. **Content**: Write a summary (approx 50-100 words) for each item. Capture the main points clearly.
+    1. **Content**: Write a detailed summary (approx 200 Chinese characters) for each item. Capture the main points clearly.
     2. **Language**: ALWAYS write Title and Content in **CHINESE (Simplified)**.
     3. **ID**: You MUST return the exact **Item ID** provided in the input.
     4. **Source**: Extract the source name from the Title (e.g. 'CBC', 'CTV').
+    5. **Quality**: If the content is generic (e.g. "Subscribe to read", "Enable JS"), IGNORE it or try to infer from Title.
 
     Output JSON Format:
     [{ "id": 0, "title": "Chinese Title", "summary": "Chinese Summary", "content": "Chinese Summary", "source_name": "Source" }]
@@ -611,8 +714,13 @@ export const NewsDatabase = {
 
     const existingTitles = new Set((existingPosts || []).map(p => p.title));
 
-    // 2. Filter out duplicates (Exact Title Match)
-    const uniqueItems = newItems.filter(item => !existingTitles.has(item.title));
+    // 2. Filter out duplicates (Exact Title or URL Match)
+    const uniqueItems = newItems.filter(item => {
+      const titleExists = existingTitles.has(item.title);
+      // We rely on the pre-check in fetchNewsFromAI for URL, but double check here if needed?
+      // Let's trust the pre-check for URL to avoid extra DB calls, but title check is good for same content different URL.
+      return !titleExists;
+    });
 
     if (uniqueItems.length === 0) {
       console.log(`[NewsDatabase] All ${newItems.length} items were duplicates. Skipping.`);
@@ -739,6 +847,19 @@ export const NewsDatabase = {
   clearAll: async () => {
     if (!supabaseUrl) return;
     await supabase.from('news').delete().neq('id', '0'); // Delete all
+  },
+
+  checkExists: async (urls: string[]): Promise<Set<string>> => {
+    if (!supabaseUrl || urls.length === 0) return new Set();
+
+    // Check for existing source_urls
+    const { data } = await supabase
+      .from('news')
+      .select('source_url')
+      .in('source_url', urls);
+
+    const existing = new Set((data || []).map(d => d.source_url));
+    return existing;
   }
 };
 
@@ -813,7 +934,9 @@ export const NewsCrawler = {
     const news = await fetchNewsFromAI(effectiveCategory, effectiveContext);
     if (news.length > 0) {
       await NewsDatabase.save(news);
-      window.dispatchEvent(new Event('NEWS_DB_UPDATED'));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('NEWS_DB_UPDATED'));
+      }
     }
   },
 
@@ -1106,7 +1229,9 @@ export const ForumCrawler = {
       if (Date.now() - lastUpdate > interval) {
         console.log("Auto-generating forum topic...");
         await generateTrendingTopic();
-        window.dispatchEvent(new Event('FORUM_DB_UPDATED'));
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('FORUM_DB_UPDATED'));
+        }
       }
     }, 60000);
   }

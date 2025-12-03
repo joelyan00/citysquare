@@ -11,11 +11,12 @@ const DEFAULT_CONFIG: AppConfig = {
     extraKeywords: 'Sports, Military, Technology, Heartwarming stories, Science, Health, Education',
 
     // Default Refresh Intervals (minutes)
-    localRefreshInterval: 720, // 12 hours
-    canadaRefreshInterval: 240, // 4 hours
-    usaRefreshInterval: 240,    // 4 hours
-    chinaRefreshInterval: 720,  // 12 hours
-    intlRefreshInterval: 240,   // 4 hours
+    // Default Refresh Intervals (minutes)
+    localRefreshInterval: 120, // 2 hours
+    canadaRefreshInterval: 120, // 2 hours
+    usaRefreshInterval: 120,    // 2 hours
+    chinaRefreshInterval: 120,  // 2 hours
+    intlRefreshInterval: 120,   // 2 hours
 
     // Default Retention Limits
     localRetentionLimit: 50,
@@ -38,7 +39,18 @@ const DEFAULT_CONFIG: AppConfig = {
     intlArticleCount: 8,
     intlTimeWindow: '48 hours',
 
-    customCategories: []
+    customCategories: [
+      {
+        id: 'russia_ukraine',
+        name: '俄乌冲突',
+        keywords: 'Russia Ukraine War, 俄乌战争, 乌克兰局势, 俄罗斯军事',
+        topic: 'Russia Ukraine War',
+        timeWindow: '24 hours',
+        refreshInterval: 120,
+        articleCount: 10,
+        retentionLimit: 50
+      }
+    ]
   },
   forum: {
     topicKeywords: 'Cost of living, Traffic, New Restaurants, Weekend Events',

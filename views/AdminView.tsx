@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AppConfig, NewsCategory, AdPricing, UserRole } from '../types';
 import { ConfigService } from '../services/configService';
 import { NewsCrawler, NewsDatabase, ForumDatabase, generateTrendingTopic, AdminDatabase } from '../services/geminiService';
-import { Save, RefreshCw, Trash2, ArrowLeft, Zap, CheckCircle, List, Type, DollarSign, Database, Clock, Plus, X, Users, Shield, PlayCircle, AlertCircle } from 'lucide-react';
+import { Save, RefreshCw, Trash2, ArrowLeft, Zap, CheckCircle, List, Type, DollarSign, Database, Clock, Plus, X, Users, Shield, PlayCircle, AlertCircle, MessageCircle } from 'lucide-react';
 import { CustomCategory } from '../types';
 
 interface AdminViewProps {
@@ -297,8 +297,8 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
                       { id: NewsCategory.LOCAL, label: '本地新闻', intervalKey: 'localRefreshInterval' },
                       { id: NewsCategory.CANADA, label: '加拿大新闻', intervalKey: 'canadaRefreshInterval' },
                       { id: NewsCategory.USA, label: '美国新闻', intervalKey: 'usaRefreshInterval' },
-                      { id: NewsCategory.CHINA, label: '中国新闻', intervalKey: 'chinaRefreshInterval' },
-                      { id: NewsCategory.INTERNATIONAL, label: '国际新闻', intervalKey: 'intlRefreshInterval' },
+                      { id: NewsCategory.CHINA, label: '科技新闻', intervalKey: 'chinaRefreshInterval' }, // Was China
+                      { id: NewsCategory.INTERNATIONAL, label: '东亚新闻', intervalKey: 'intlRefreshInterval' }, // Was International
                     ].map((item) => (
                       <tr key={item.id}>
                         <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.label}</td>
@@ -446,6 +446,55 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
                 >
                   <Plus size={20} />
                 </button>
+              </div>
+            </section>
+
+            {/* Forum Configuration */}
+            <section className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                <MessageCircle size={20} className="mr-2 text-indigo-500" /> 论坛话题配置
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">话题分类 (逗号分隔)</label>
+                  <textarea
+                    value={config.forum.categories}
+                    onChange={(e) => setConfig({ ...config, forum: { ...config.forum, categories: e.target.value } })}
+                    className="w-full border border-gray-300 rounded-lg p-3 text-sm h-24 focus:ring-2 focus:ring-indigo-500 outline-none"
+                    placeholder="例如: 军事, 科技, 历史..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">生成关键词 (逗号分隔)</label>
+                  <textarea
+                    value={config.forum.topicKeywords}
+                    onChange={(e) => setConfig({ ...config, forum: { ...config.forum, topicKeywords: e.target.value } })}
+                    className="w-full border border-gray-300 rounded-lg p-3 text-sm h-24 focus:ring-2 focus:ring-indigo-500 outline-none"
+                    placeholder="例如: Cost of living, Traffic..."
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-bold text-gray-700 mb-2">提问风格 (逗号分隔)</label>
+                  <textarea
+                    value={config.forum.questionTypes}
+                    onChange={(e) => setConfig({ ...config, forum: { ...config.forum, questionTypes: e.target.value } })}
+                    className="w-full border border-gray-300 rounded-lg p-3 text-sm h-20 focus:ring-2 focus:ring-indigo-500 outline-none"
+                    placeholder="例如: 无知提问, 尖锐问题..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">自动生成间隔 (分钟)</label>
+                  <div className="flex items-center">
+                    <input
+                      type="number"
+                      min="10"
+                      value={config.forum.generateInterval}
+                      onChange={(e) => setConfig({ ...config, forum: { ...config.forum, generateInterval: parseInt(e.target.value) || 60 } })}
+                      className="w-32 border border-gray-300 rounded-lg p-2 text-center mr-2"
+                    />
+                    <span className="text-sm text-gray-500">分钟</span>
+                  </div>
+                </div>
               </div>
             </section>
           </div>
