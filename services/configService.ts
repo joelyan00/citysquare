@@ -41,10 +41,10 @@ const DEFAULT_CONFIG: AppConfig = {
 
     customCategories: [
       {
-        id: 'russia_ukraine',
-        name: '俄乌冲突',
-        keywords: 'Russia Ukraine War, 俄乌战争, 乌克兰局势, 俄罗斯军事',
-        topic: 'Russia Ukraine War',
+        id: 'europe',
+        name: '欧洲',
+        keywords: 'Russia Ukraine War, Europe News, EU Politics, Germany News, UK News, France News, 俄乌局势, 欧洲局势',
+        topic: 'Europe News',
         timeWindow: '24 hours',
         refreshInterval: 120,
         articleCount: 10,

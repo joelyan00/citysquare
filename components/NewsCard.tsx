@@ -120,27 +120,32 @@ const NewsCard: React.FC<NewsCardProps> = ({
 
                 {/* 5. Actions & Read Original Link */}
                 <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-700 mt-2">
-                    {/* Read Original Link */}
-                    {item.sourceUrl ? (
-                        <a
-                            href={item.sourceUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1 text-brand-600 dark:text-brand-400 font-bold text-sm hover:underline"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            阅读原文
-                            <ChevronRight size={16} strokeWidth={3} />
-                        </a>
-                    ) : (
+                    {/* Actions: Expand & Read Original */}
+                    <div className="flex items-center gap-4">
                         <button
-                            onClick={() => toggleExpand(item.id)}
-                            className="flex items-center gap-1 text-brand-600 dark:text-brand-400 font-bold text-sm hover:underline"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                toggleExpand(item.id);
+                            }}
+                            className="flex items-center gap-1 text-gray-600 dark:text-gray-300 font-bold text-sm hover:text-brand-600 transition-colors"
                         >
-                            {expandedNewsId === item.id ? '收起' : '阅读更多'}
+                            {expandedNewsId === item.id ? '收起' : '展开'}
                             {expandedNewsId === item.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                         </button>
-                    )}
+
+                        {item.sourceUrl && (
+                            <a
+                                href={item.sourceUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 text-brand-600 dark:text-brand-400 font-bold text-sm hover:underline"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                阅读原文
+                                <ChevronRight size={16} strokeWidth={3} />
+                            </a>
+                        )}
+                    </div>
 
                     {/* Share & More Actions */}
                     <div className="flex items-center gap-3">

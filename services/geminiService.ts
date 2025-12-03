@@ -326,14 +326,33 @@ const fetchArticleContent = async (url: string): Promise<string | null> => {
     const $ = load(html);
 
     // Remove unwanted elements
-    $('script, style, nav, header, footer, .ad, .advertisement, .menu, .sidebar').remove();
+    $('script, style, nav, header, footer, .ad, .advertisement, .menu, .sidebar, .cookie-banner, .popup').remove();
 
-    // Extract text from paragraphs
+    // Try to find main article container
+    let container = $('article');
+    if (container.length === 0) container = $('main');
+    if (container.length === 0) container = $('.post-content');
+    if (container.length === 0) container = $('.article-body');
+    if (container.length === 0) container = $('body'); // Fallback
+
+    // Extract text from paragraphs, headings, and lists within the container
     let text = '';
-    $('p').each((i, el) => {
-      const pText = $(el).text().trim();
-      if (pText.length > 20) { // Filter out short snippets
-        text += pText + '\n\n';
+    container.find('h1, h2, h3, p, li').each((i, el) => {
+      const $el = $(el);
+      // Skip if inside a nested ignored container that wasn't caught by global remove
+      if ($el.closest('.related-posts, .comments, .share-buttons').length > 0) return;
+
+      const tag = el.tagName.toLowerCase();
+      const content = $el.text().trim();
+
+      if (content.length > 10) { // Lower threshold slightly for headings/list items
+        if (tag.startsWith('h')) {
+          text += `\n### ${content}\n`;
+        } else if (tag === 'li') {
+          text += `- ${content}\n`;
+        } else {
+          text += content + '\n\n';
+        }
       }
     });
 
@@ -394,16 +413,17 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
     if (config.news.usaKeywords) keywords = config.news.usaKeywords;
   } else if (category === NewsCategory.CHINA) {
     // REFACTORED: China -> Tech News
-    topic = 'New Technology AI Space Robotics Bio-medicine';
+    topic = 'Technology';
     articleCount = config.news.chinaArticleCount || 10;
     timeWindow = config.news.chinaTimeWindow || "24 hours";
-    keywords = "Artificial Intelligence, Space Technology, Robotics, Bio-medicine, Frontier Technology, AI, SpaceX, Biotech, Quantum Computing";
+    keywords = "Artificial Intelligence, AI, 人工智能, Space Technology, SpaceX, 航天, Robotics, 机器人, Bio-medicine, 生物医药, Quantum Computing, 量子计算";
   } else if (category === NewsCategory.INTERNATIONAL) {
     // REFACTORED: International -> East Asia News
-    topic = 'East Asia News China Japan Korea Taiwan Hong Kong';
+    topic = 'East Asia';
     articleCount = config.news.intlArticleCount || 8;
     timeWindow = config.news.intlTimeWindow || "24 hours";
-    keywords = "Military, Finance, Civil Society, Medical, Education, China-Japan Relations, Cross-strait Relations, Economy";
+    // Use specific geographic keywords to avoid global news from these sources (e.g. Sudan)
+    keywords = "China News, Japan News, South Korea News, North Korea News, Taiwan News, Hong Kong News, Macau News, East Asia Politics, East Asia Economy, Cross-strait Relations, China-Japan Relations";
   } else {
     // Check Custom Categories
     const customCat = config.news.customCategories?.find(c => c.id === category);
@@ -427,6 +447,9 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
     // REFACTORED: INTERNATIONAL -> EAST ASIA Sources
     // Mainland: 163.com; Taiwan: chinatimes, udn, ltn, cna; SG: nanyang, zaobao; JP: asahi, yahoo.co.jp; KR: chosun
     [NewsCategory.INTERNATIONAL]: "site:163.com OR site:chinatimes.com OR site:udn.com OR site:ltn.com.tw OR site:cna.com.tw OR site:nanyang.com OR site:zaobao.com.sg OR site:asahi.com OR site:yahoo.co.jp OR site:chosun.com OR site:cn.chosun.com OR site:asahichinese-f.com",
+
+    // REFACTORED: Russia-Ukraine -> Europe Sources
+    "europe": "site:bbc.com OR site:dw.com OR site:france24.com OR site:euronews.com OR site:politico.eu OR site:theguardian.com OR site:reuters.com",
 
     // "TECH": "site:techcrunch.com OR site:theverge.com OR site:wired.com OR site:arstechnica.com OR site:36kr.com", // Removed implicit tech filter
 
@@ -455,7 +478,10 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
 
     // 1. Fetch Raw Search Results via Google Custom Search API
     // Construct query with source filter if applicable
-    const newsSuffix = (category === NewsCategory.CHINA || category === NewsCategory.INTERNATIONAL) ? '新闻' : 'news';
+    // Use 'news' as suffix generally, unless it's strictly Chinese local news where '新闻' might be better.
+    // But 'news' works for Chinese too usually. To be safe for English sites, use 'news' or nothing.
+    // Let's use 'news' for all to ensure English sites are matched.
+    const newsSuffix = 'news';
     const searchQuery = sourceFilter
       ? `${topic} ${newsSuffix} (${sourceFilter}) ${formattedKeywords}`
       : `${topic} ${newsSuffix} ${formattedKeywords}`;
@@ -469,8 +495,45 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
       return [];
     }
 
-    // Filter results (Deep Link Check)
-    const validResults = searchResults.filter(item => isDeepLink(item.link));
+    // Filter results (Deep Link Check & Content Filter)
+    const validResults = searchResults.filter(item => {
+      if (!isDeepLink(item.link)) return false;
+
+      // Filter out generic titles, corporate announcements, and station profiles
+      const titleLower = item.title.toLowerCase();
+      if (
+        titleLower.includes('watch live') ||
+        titleLower.includes('live stream') ||
+        titleLower.includes('live news') ||
+        titleLower.includes('breaking news live') ||
+        titleLower.includes('bbc news channel') ||
+        titleLower.includes('top stories') ||
+        titleLower.includes('latest news') ||
+        titleLower === 'home' ||
+        titleLower === 'index' ||
+        titleLower === 'news' ||
+        // Corporate/Partnership filters
+        titleLower.includes('partnership') ||
+        titleLower.includes('collaboration') ||
+        titleLower.includes('partner with') ||
+        titleLower.includes('announces') ||
+        titleLower.includes('press release') ||
+        titleLower.includes('about us') ||
+        titleLower.includes('contact us') ||
+        titleLower.includes('subscribe') ||
+        titleLower.includes('newsletter') ||
+        // Station Profiles / Radio Homepages
+        titleLower.includes('am980') ||
+        titleLower.includes('cfpl') ||
+        titleLower.includes('news talk') ||
+        titleLower.includes('traffic and weather') ||
+        titleLower.includes('listen live')
+      ) {
+        console.log(`Skipping generic/corporate/station title: ${item.title}`);
+        return false;
+      }
+      return true;
+    });
 
     // Limit to requested count (plus buffer for deduplication)
     const candidates = validResults.slice(0, articleCount * 2);
@@ -524,18 +587,25 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
     const systemInstruction = `You are a professional journalist for "City666".
     Your task is to summarize the provided news items.
     
-    INPUT: A list of news items with ID, Title, and Content.
+    INPUT: A list of news items with ID, Title, and Content (or Snippet).
     OUTPUT: A JSON array of news objects.
 
-    RULES:
-    1. **Content**: Write a detailed summary (approx 200 Chinese characters) for each item. Capture the main points clearly.
-    2. **Language**: ALWAYS write Title and Content in **CHINESE (Simplified)**.
-    3. **ID**: You MUST return the exact **Item ID** provided in the input.
-    4. **Source**: Extract the source name from the Title (e.g. 'CBC', 'CTV').
-    5. **Quality**: If the content is generic (e.g. "Subscribe to read", "Enable JS"), IGNORE it or try to infer from Title.
+    CRITICAL RULES:
+    1. **Content Quality**: Focus on **SPECIFIC DETAILS**. You MUST include:
+       - **Who**: Specific names of people, organizations, or countries.
+       - **What**: The specific event, action, or announcement.
+       - **When**: Dates or times mentioned.
+       - **Where**: Specific locations (cities, regions).
+       - **Why/How**: The reason or method.
+       - **Numbers**: Statistics, money amounts, percentages.
+    2. **Content Length**: Write a **DETAILED** summary for each item. It MUST be at least **200 Chinese characters** long. If the source content is short, elaborate on the context, background, or implications to meet the length requirement.
+    3. **Language**: ALWAYS write Title and Content in **CHINESE (Simplified)**.
+    4. **ID**: You MUST return the exact **Item ID** provided in the input.
+    5. **Source**: Extract the source name from the Title (e.g. 'CBC', 'CTV').
+    6. **No Generic Content**: If the content is "Subscribe to read" or "Enable JS", ignore it.
 
     Output JSON Format:
-    [{ "id": 0, "title": "Chinese Title", "summary": "Chinese Summary", "content": "Chinese Summary", "source_name": "Source" }]
+    [{ "id": 0, "title": "Chinese Title", "summary": "Chinese Summary (>200 chars)", "content": "Chinese Summary (>200 chars)", "source_name": "Source" }]
     `;
 
     // 3. Generate Summaries with Gemini
@@ -811,6 +881,7 @@ export const NewsDatabase = {
 
     // 3. Delete Images from Storage (if AI generated)
     for (const item of uniqueDeleteItems) {
+
       if (item.image_url && item.image_url.includes('supabase') && item.image_url.includes('ai_news')) {
         try {
           // Extract filename from URL
@@ -865,11 +936,42 @@ export const NewsDatabase = {
 
 export const NewsCrawler = {
   init: async () => {
-    console.log("News Crawler initialized");
+    console.log("News Crawler initialized with Staggered Round-Robin Scheduler");
+
+    let currentCategoryIndex = 0;
+
     // Background loop check every minute
-    setInterval(() => {
-      // ... (Optional background check logic)
-    }, 60000);
+    setInterval(async () => {
+      try {
+        const config = await ConfigService.get();
+        const categories = [
+          NewsCategory.LOCAL,
+          NewsCategory.CANADA,
+          NewsCategory.USA,
+          NewsCategory.CHINA,
+          NewsCategory.INTERNATIONAL,
+          ...(config.news.customCategories?.map(c => c.id) || [])
+        ];
+
+        if (categories.length === 0) return;
+
+        // Round-Robin: Pick one category to check per tick (every minute)
+        // This ensures updates are staggered and don't happen all at once.
+        const cat = categories[currentCategoryIndex % categories.length];
+        currentCategoryIndex++;
+
+        // Check if this specific category needs an update (e.g. > 2 hours since last)
+        if (await NewsCrawler.shouldUpdate(cat)) {
+          console.log(`[AutoFetch] Staggered check: Triggering update for ${cat}`);
+          await NewsCrawler.run(cat);
+        } else {
+          console.log(`[AutoFetch] Staggered check: ${cat} is up to date.`);
+        }
+
+      } catch (e) {
+        console.error("[AutoFetch] Error in background loop:", e);
+      }
+    }, 60000); // Check one category every minute
   },
 
   shouldUpdate: async (category: string, context?: string): Promise<boolean> => {
