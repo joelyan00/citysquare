@@ -10,7 +10,7 @@ import html2canvas from 'html2canvas';
 
 const POPULAR_CITIES = [
   { label: '大多伦多 (GTA)', value: 'Toronto' },
-  { label: '温哥华 (Vancouver)', value: 'Vancouver' },
+  { label: '大温哥华 (Greater Vancouver)', value: 'Vancouver' },
   { label: '蒙特利尔 (Montreal)', value: 'Montreal' },
   { label: '卡尔加里 (Calgary)', value: 'Calgary' },
   { label: '埃德蒙顿 (Edmonton)', value: 'Edmonton' },

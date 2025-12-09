@@ -68,6 +68,13 @@ const CITY_CATEGORY_MAP: Record<string, NewsCategory> = {
   '温哥华': NewsCategory.VANCOUVER,
   'Richmond': NewsCategory.VANCOUVER,
   'Burnaby': NewsCategory.VANCOUVER,
+  'Surrey': NewsCategory.VANCOUVER,
+  'Coquitlam': NewsCategory.VANCOUVER,
+  'West Vancouver': NewsCategory.VANCOUVER,
+  'North Vancouver': NewsCategory.VANCOUVER,
+  'Delta': NewsCategory.VANCOUVER,
+  'Langley': NewsCategory.VANCOUVER,
+  'White Rock': NewsCategory.VANCOUVER,
 
   // Montreal
   'Montreal': NewsCategory.MONTREAL,
@@ -403,7 +410,7 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
     // Treat new cities as Local News but with specific topic
     const cityMap: Record<string, string> = {
       [NewsCategory.GTA]: 'Toronto OR "York Region" OR "Peel Region" OR "Durham Region" OR "Halton Region"',
-      [NewsCategory.VANCOUVER]: 'Vancouver',
+      [NewsCategory.VANCOUVER]: 'Vancouver OR Burnaby OR Richmond OR Surrey OR Coquitlam OR "West Vancouver" OR "North Vancouver" OR Delta OR Langley OR "White Rock"',
       [NewsCategory.MONTREAL]: 'Montreal',
       [NewsCategory.CALGARY]: 'Calgary',
       [NewsCategory.EDMONTON]: 'Edmonton',
@@ -605,7 +612,17 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
             console.log(`Skipping item not matching GTA keywords: ${item.title}`);
             return false;
           }
-        } else {
+        }
+        // Special handling for Vancouver (Multiple Keywords)
+        else if (category === NewsCategory.VANCOUVER) {
+          const vanKeywords = ['vancouver', 'burnaby', 'richmond', 'surrey', 'coquitlam', 'delta', 'langley', 'white rock', 'west vancouver', 'north vancouver', 'abbotsford', 'chilliwack', 'mission', 'maple ridge', 'pitt meadows', 'port coquitlam', 'port moody', 'new westminster'];
+          const hasKeyword = vanKeywords.some(k => textLower.includes(k));
+          if (!hasKeyword) {
+            console.log(`Skipping item not matching Vancouver keywords: ${item.title}`);
+            return false;
+          }
+        }
+        else {
           if (!textLower.includes(requiredKeyword)) {
             console.log(`Skipping item not matching category ${category}: ${item.title}`);
             return false;
