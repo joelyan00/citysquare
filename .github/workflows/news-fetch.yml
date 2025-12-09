@@ -33,4 +33,4 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           # If you use these in your code, map them here too
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }} 
-        run: npm run fetch-news
+        run: npm run fetch-news:ci

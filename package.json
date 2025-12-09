@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "fetch-news": "npx tsx --env-file=.env.local scripts/scheduled-news-fetch.ts",
-    "fetch-news:loop": "npx tsx --env-file=.env.local scripts/local-scheduler.ts"
+    "fetch-news:loop": "npx tsx --env-file=.env.local scripts/local-scheduler.ts",
+    "fetch-news:ci": "npx tsx scripts/scheduled-news-fetch.ts"
   },
   "dependencies": {
     "@google/genai": "^1.30.0",
