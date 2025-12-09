@@ -522,7 +522,7 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
     [NewsCategory.MONTREAL]: "site:montrealgazette.com OR site:montreal.ca OR site:cbc.ca/news/canada/montreal OR site:ctvnews.ca/montreal OR site:sinoquebec.com OR site:ca.finance.yahoo.com",
     [NewsCategory.CALGARY]: "site:calgaryherald.com OR site:calgary.ca OR site:cbc.ca/news/canada/calgary OR site:ctvnews.ca/calgary OR site:ca.finance.yahoo.com",
     [NewsCategory.EDMONTON]: "site:edmontonjournal.com OR site:edmonton.ca OR site:cbc.ca/news/canada/edmonton OR site:ctvnews.ca/edmonton OR site:ca.finance.yahoo.com",
-    [NewsCategory.WATERLOO]: "site:therecord.com OR site:regionofwaterloo.ca OR site:cbc.ca/news/canada/kitchener-waterloo OR site:kitchener.ca OR site:waterloo.ca OR site:guelphtoday.com OR site:guelph.ca OR site:ca.finance.yahoo.com",
+    [NewsCategory.WATERLOO]: "site:therecord.com OR site:regionofwaterloo.ca OR site:cbc.ca/news/canada/kitchener-waterloo OR site:kitchener.ca OR site:waterloo.ca OR site:guelphtoday.com OR site:guelph.ca OR site:guelphmercury.com OR site:ca.finance.yahoo.com",
     [NewsCategory.WINDSOR]: "site:windsorstar.com OR site:citywindsor.ca OR site:cbc.ca/news/canada/windsor OR site:ctvnews.ca/windsor OR site:ca.finance.yahoo.com",
     [NewsCategory.LONDON]: "site:lfpress.com OR site:london.ca OR site:cbc.ca/news/canada/london OR site:ctvnews.ca/london OR site:ca.finance.yahoo.com"
   };
