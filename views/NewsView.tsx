@@ -10,15 +10,25 @@ import html2canvas from 'html2canvas';
 
 const POPULAR_CITIES = [
   { label: '大多伦多 (GTA)', value: 'Toronto' },
+  { label: '万锦 (Markham)', value: 'Markham' },
+  { label: '列治文山 (Richmond Hill)', value: 'Richmond Hill' },
+  { label: '密西沙加 (Mississauga)', value: 'Mississauga' },
   { label: '大温哥华 (Greater Vancouver)', value: 'Vancouver' },
+  { label: '列治文 (Richmond)', value: 'Richmond' },
+  { label: '本拿比 (Burnaby)', value: 'Burnaby' },
   { label: '蒙特利尔 (Montreal)', value: 'Montreal' },
   { label: '卡尔加里 (Calgary)', value: 'Calgary' },
   { label: '埃德蒙顿 (Edmonton)', value: 'Edmonton' },
-  { label: '滑铁卢/圭尔夫 (Waterloo/Guelph)', value: 'Waterloo' },
-
+  { label: '滑铁卢 (Waterloo)', value: 'Waterloo' },
+  { label: '基奇纳 (Kitchener)', value: 'Kitchener' },
+  { label: '剑桥 (Cambridge)', value: 'Cambridge' },
+  { label: '圭尔夫 (Guelph)', value: 'Guelph' },
   { label: '温莎 (Windsor)', value: 'Windsor' },
   { label: '伦敦 (London)', value: 'London' },
+  { label: '渥太华 (Ottawa)', value: 'Ottawa' },
 ];
+
+// ... (rest of file)
 
 const staticCategoryLabels: Partial<Record<NewsCategory, string>> = {
   [NewsCategory.CANADA]: '加拿大',
@@ -489,29 +499,29 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
             </div>
 
             <div className="space-y-4">
-              <div className="relative">
-                <input
-                  type="text"
-                  value={manualCityInput}
-                  onChange={e => setManualCityInput(e.target.value)}
-                  placeholder="例如: Guelph, Barrie, Ottawa"
-                  list="popular-cities"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 font-bold text-gray-800 focus:ring-2 focus:ring-brand-500 outline-none transition-all text-lg"
-                />
-                <datalist id="popular-cities">
-                  {POPULAR_CITIES.map(city => (
-                    <option key={city.value} value={city.value}>{city.label}</option>
-                  ))}
-                </datalist>
+              <div className="grid grid-cols-2 gap-3 max-h-[60vh] overflow-y-auto pr-1">
+                {POPULAR_CITIES.map(cityOption => (
+                  <button
+                    key={cityOption.value}
+                    onClick={() => {
+                      onCityUpdate(cityOption.value);
+                      setShowLocationModal(false);
+                      // Trigger refresh immediately
+                      if (activeCategory === NewsCategory.LOCAL) {
+                        // We don't await here to close modal fast
+                        NewsCrawler.forceRefresh(NewsCategory.LOCAL, cityOption.value);
+                      }
+                    }}
+                    className={`p-3 rounded-xl text-sm font-bold transition-all border-2 text-left flex items-center ${city === cityOption.value
+                        ? 'border-brand-600 bg-brand-50 text-brand-700'
+                        : 'border-transparent bg-gray-50 text-gray-600 hover:bg-gray-100'
+                      }`}
+                  >
+                    <MapPin size={14} className="mr-2 flex-shrink-0" />
+                    <span className="truncate">{cityOption.label}</span>
+                  </button>
+                ))}
               </div>
-
-              <button
-                onClick={handleManualCitySubmit}
-                className="w-full bg-brand-600 text-white font-black py-4 rounded-xl shadow-lg shadow-brand-500/30 active:scale-95 transition-transform flex items-center justify-center"
-              >
-                <Check className="mr-2" size={20} strokeWidth={3} />
-                确认
-              </button>
             </div>
           </div>
         </div>
