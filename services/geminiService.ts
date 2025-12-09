@@ -95,6 +95,8 @@ const CITY_CATEGORY_MAP: Record<string, NewsCategory> = {
   'Guelph': NewsCategory.WATERLOO,
   '滑铁卢': NewsCategory.WATERLOO,
   '圭尔夫': NewsCategory.WATERLOO,
+  '基奇纳': NewsCategory.WATERLOO,
+  '剑桥': NewsCategory.WATERLOO,
 
   // Windsor
   'Windsor': NewsCategory.WINDSOR,
