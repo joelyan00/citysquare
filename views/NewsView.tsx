@@ -78,7 +78,7 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
       .filter(cat => ![
         NewsCategory.GTA, NewsCategory.VANCOUVER, NewsCategory.MONTREAL,
         NewsCategory.CALGARY, NewsCategory.EDMONTON, NewsCategory.WATERLOO,
-        NewsCategory.WINDSOR, NewsCategory.LONDON
+        NewsCategory.GUELPH, NewsCategory.WINDSOR, NewsCategory.LONDON
       ].includes(cat))
       .map(cat => ({
         id: cat,

@@ -554,6 +554,41 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
         console.log(`Skipping generic/corporate/station title: ${item.title}`);
         return false;
       }
+      // Strict Location Filter for Local News
+      if (category === NewsCategory.LOCAL && context && context !== '本地') {
+        const cityLower = context.toLowerCase();
+        const textLower = (item.title + ' ' + item.snippet).toLowerCase();
+
+        // If the city name is NOT in the title or snippet, skip it.
+        // This prevents "Nassau County" news appearing for "Guelph" just because of loose matching.
+        if (!textLower.includes(cityLower)) {
+          console.log(`Skipping item not matching city ${context}: ${item.title}`);
+          return false;
+        }
+      }
+
+      // Strict Filter for Mapped Cities (Waterloo, London, etc.)
+      const cityMap: Record<string, string> = {
+        [NewsCategory.WATERLOO]: 'waterloo',
+        [NewsCategory.GUELPH]: 'guelph',
+        [NewsCategory.LONDON]: 'london',
+        [NewsCategory.WINDSOR]: 'windsor',
+        [NewsCategory.GTA]: 'toronto',
+        [NewsCategory.VANCOUVER]: 'vancouver',
+        [NewsCategory.MONTREAL]: 'montreal',
+        [NewsCategory.CALGARY]: 'calgary',
+        [NewsCategory.EDMONTON]: 'edmonton',
+      };
+
+      if (cityMap[category]) {
+        const requiredKeyword = cityMap[category];
+        const textLower = (item.title + ' ' + item.snippet).toLowerCase();
+        if (!textLower.includes(requiredKeyword)) {
+          console.log(`Skipping item not matching category ${category}: ${item.title}`);
+          return false;
+        }
+      }
+
       return true;
     });
 

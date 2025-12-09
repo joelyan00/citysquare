@@ -36,6 +36,7 @@ export enum NewsCategory {
   CALGARY = 'Calgary',
   EDMONTON = 'Edmonton',
   WATERLOO = 'Waterloo',
+  GUELPH = 'Guelph',
   WINDSOR = 'Windsor',
   LONDON = 'London'
 }
