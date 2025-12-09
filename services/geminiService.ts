@@ -517,14 +517,15 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
     "europe": "site:bbc.com OR site:dw.com OR site:france24.com OR site:euronews.com OR site:politico.eu OR site:theguardian.com OR site:reuters.com OR site:rfi.fr/cn OR site:bbc.com/zhongwen",
 
     // Local News Filters
-    [NewsCategory.GTA]: "site:thestar.com OR site:cp24.com OR site:toronto.ca OR site:cbc.ca/news/canada/toronto OR site:torontosun.com OR site:singtao.ca OR site:mingpaocanada.com OR site:ca.finance.yahoo.com",
-    [NewsCategory.VANCOUVER]: "site:vancouversun.com OR site:vancouver.ca OR site:cbc.ca/news/canada/british-columbia OR site:theprovince.com OR site:ctvnews.ca/vancouver OR site:singtao.ca OR site:mingpaocanada.com OR site:ca.finance.yahoo.com",
-    [NewsCategory.MONTREAL]: "site:montrealgazette.com OR site:montreal.ca OR site:cbc.ca/news/canada/montreal OR site:ctvnews.ca/montreal OR site:sinoquebec.com OR site:ca.finance.yahoo.com",
-    [NewsCategory.CALGARY]: "site:calgaryherald.com OR site:calgary.ca OR site:cbc.ca/news/canada/calgary OR site:ctvnews.ca/calgary OR site:ca.finance.yahoo.com",
-    [NewsCategory.EDMONTON]: "site:edmontonjournal.com OR site:edmonton.ca OR site:cbc.ca/news/canada/edmonton OR site:ctvnews.ca/edmonton OR site:ca.finance.yahoo.com",
-    [NewsCategory.WATERLOO]: "site:therecord.com OR site:regionofwaterloo.ca OR site:cbc.ca/news/canada/kitchener-waterloo OR site:kitchener.ca OR site:waterloo.ca OR site:guelphtoday.com OR site:guelph.ca OR site:guelphmercury.com OR site:ca.finance.yahoo.com",
-    [NewsCategory.WINDSOR]: "site:windsorstar.com OR site:citywindsor.ca OR site:cbc.ca/news/canada/windsor OR site:ctvnews.ca/windsor OR site:ca.finance.yahoo.com",
-    [NewsCategory.LONDON]: "site:lfpress.com OR site:london.ca OR site:cbc.ca/news/canada/london OR site:ctvnews.ca/london OR site:ca.finance.yahoo.com"
+    // Local News Filters
+    [NewsCategory.GTA]: "site:thestar.com OR site:cp24.com OR site:toronto.ca OR site:mississauga.ca OR site:brampton.ca OR site:markham.ca OR site:richmondhill.ca OR site:vaughan.ca OR site:ontario.ca OR site:news.ontario.ca OR site:cbc.ca/news/canada/toronto OR site:torontosun.com OR site:singtao.ca OR site:mingpaocanada.com OR site:ca.finance.yahoo.com",
+    [NewsCategory.VANCOUVER]: "site:vancouversun.com OR site:vancouver.ca OR site:richmond.ca OR site:burnaby.ca OR site:surrey.ca OR site:coquitlam.ca OR site:gov.bc.ca OR site:news.gov.bc.ca OR site:cbc.ca/news/canada/british-columbia OR site:theprovince.com OR site:ctvnews.ca/vancouver OR site:singtao.ca OR site:mingpaocanada.com OR site:ca.finance.yahoo.com",
+    [NewsCategory.MONTREAL]: "site:montrealgazette.com OR site:montreal.ca OR site:quebec.ca OR site:cbc.ca/news/canada/montreal OR site:ctvnews.ca/montreal OR site:sinoquebec.com OR site:ca.finance.yahoo.com",
+    [NewsCategory.CALGARY]: "site:calgaryherald.com OR site:calgary.ca OR site:alberta.ca OR site:cbc.ca/news/canada/calgary OR site:ctvnews.ca/calgary OR site:ca.finance.yahoo.com",
+    [NewsCategory.EDMONTON]: "site:edmontonjournal.com OR site:edmonton.ca OR site:alberta.ca OR site:cbc.ca/news/canada/edmonton OR site:ctvnews.ca/edmonton OR site:ca.finance.yahoo.com",
+    [NewsCategory.WATERLOO]: "site:therecord.com OR site:regionofwaterloo.ca OR site:kitchener.ca OR site:waterloo.ca OR site:cambridge.ca OR site:guelph.ca OR site:ontario.ca OR site:news.ontario.ca OR site:cbc.ca/news/canada/kitchener-waterloo OR site:guelphtoday.com OR site:guelphmercury.com OR site:ca.finance.yahoo.com",
+    [NewsCategory.WINDSOR]: "site:windsorstar.com OR site:citywindsor.ca OR site:ontario.ca OR site:news.ontario.ca OR site:cbc.ca/news/canada/windsor OR site:ctvnews.ca/windsor OR site:ca.finance.yahoo.com",
+    [NewsCategory.LONDON]: "site:lfpress.com OR site:london.ca OR site:ontario.ca OR site:news.ontario.ca OR site:cbc.ca/news/canada/london OR site:ctvnews.ca/london OR site:ca.finance.yahoo.com"
   };
 
   // Append source filter if available
