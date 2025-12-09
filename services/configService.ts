@@ -4,8 +4,8 @@ import { AppConfig, NewsSettings, ForumSettings } from '../types';
 
 const DEFAULT_CONFIG: AppConfig = {
   news: {
-    localArticleCount: 15,
-    globalArticleCount: 8,
+    localArticleCount: 10,
+    globalArticleCount: 10,
     localTimeWindow: '48 hours',
     globalTimeWindow: '7 days',
     extraKeywords: 'Sports, Military, Technology, Heartwarming stories, Science, Health, Education',
@@ -36,7 +36,7 @@ const DEFAULT_CONFIG: AppConfig = {
     chinaArticleCount: 10,
     chinaTimeWindow: '24 hours',
 
-    intlArticleCount: 8,
+    intlArticleCount: 10,
     intlTimeWindow: '48 hours',
 
     customCategories: [

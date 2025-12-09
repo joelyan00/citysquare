@@ -402,28 +402,28 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
     articleCount = config.news.localArticleCount || 15;
     timeWindow = config.news.localTimeWindow || "48 hours";
   } else if (category === NewsCategory.CANADA) {
-    topic = 'Canada';
+    topic = 'Canada Chinese Community';
     articleCount = config.news.canadaArticleCount || 10;
     timeWindow = config.news.canadaTimeWindow || "24 hours";
-    if (config.news.canadaKeywords) keywords = config.news.canadaKeywords;
+    keywords = "Chinese Canadian, 华人, 加拿大华人, Chinese Community, Immigration, Visa, Housing";
+    if (config.news.canadaKeywords) keywords += `, ${config.news.canadaKeywords}`;
   } else if (category === NewsCategory.USA) {
-    topic = 'United States';
+    topic = 'USA Chinese Community';
     articleCount = config.news.usaArticleCount || 10;
     timeWindow = config.news.usaTimeWindow || "24 hours";
-    if (config.news.usaKeywords) keywords = config.news.usaKeywords;
+    keywords = "Chinese American, 华人, 美国华人, Chinese Community, H-1B, Visa, Chinatown";
+    if (config.news.usaKeywords) keywords += `, ${config.news.usaKeywords}`;
   } else if (category === NewsCategory.CHINA) {
-    // REFACTORED: China -> Tech News
-    topic = 'Technology';
+    topic = 'China News';
     articleCount = config.news.chinaArticleCount || 10;
     timeWindow = config.news.chinaTimeWindow || "24 hours";
-    keywords = "Artificial Intelligence, AI, 人工智能, Space Technology, SpaceX, 航天, Robotics, 机器人, Bio-medicine, 生物医药, Quantum Computing, 量子计算";
+    keywords = "China Society, China Economy, China Technology, Chinese Culture, Social Issues, 民生, 社会, 经济";
   } else if (category === NewsCategory.INTERNATIONAL) {
-    // REFACTORED: International -> East Asia News
-    topic = 'East Asia';
+    // REFACTORED: International -> Global Chinese & East Asia
+    topic = 'Global Chinese Community & East Asia';
     articleCount = config.news.intlArticleCount || 8;
     timeWindow = config.news.intlTimeWindow || "24 hours";
-    // Use specific geographic keywords to avoid global news from these sources (e.g. Sudan)
-    keywords = "China News, Japan News, South Korea News, North Korea News, Taiwan News, Hong Kong News, Macau News, East Asia Politics, East Asia Economy, Cross-strait Relations, China-Japan Relations";
+    keywords = "Overseas Chinese, 华侨, 华人, Taiwan News, Hong Kong News, Japan News, South Korea News";
   } else {
     // Check Custom Categories
     const customCat = config.news.customCategories?.find(c => c.id === category);
@@ -433,30 +433,32 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
       timeWindow = customCat.timeWindow || "24 hours";
       // Overwrite keywords for custom categories to be specific
       if (customCat.keywords) keywords = customCat.keywords;
+
+      // Special handling for Europe custom category if it exists
+      if (category === 'europe') {
+        keywords = "Russia Ukraine War, 俄乌战争, 俄乌局势, Europe Chinese, 欧洲华人";
+      }
     }
   }
 
   // Authoritative Source Filters
   const SOURCE_FILTERS: Record<string, string> = {
-    // REFACTORED: CHINA -> TECH Sources
-    [NewsCategory.CHINA]: "site:techcrunch.com OR site:theverge.com OR site:wired.com OR site:arstechnica.com OR site:36kr.com OR site:mit.edu OR site:nature.com OR site:science.org OR site:qbitai.com OR site:jiqizhixin.com",
+    [NewsCategory.CHINA]: "site:sina.com.cn OR site:qq.com OR site:163.com OR site:ifeng.com OR site:thepaper.cn OR site:caixin.com OR site:jiemian.com OR site:scmp.com OR site:zaobao.com.sg",
 
-    [NewsCategory.CANADA]: "site:cbc.ca OR site:ctvnews.ca OR site:globalnews.ca OR site:canada.ca OR site:cp24.com",
-    [NewsCategory.USA]: "site:cnn.com OR site:nytimes.com OR site:washingtonpost.com OR site:wsj.com OR site:reuters.com OR site:apnews.com OR site:usa.gov",
+    [NewsCategory.CANADA]: "site:cbc.ca OR site:ctvnews.ca OR site:globalnews.ca OR site:canada.ca OR site:cp24.com OR site:singtao.ca OR site:mingpaocanada.com OR site:iask.ca",
 
-    // REFACTORED: INTERNATIONAL -> EAST ASIA Sources
+    [NewsCategory.USA]: "site:cnn.com OR site:nytimes.com OR site:washingtonpost.com OR site:wsj.com OR site:reuters.com OR site:worldjournal.com OR site:dwnews.com OR site:voachinese.com",
+
     // Mainland: 163.com; Taiwan: chinatimes, udn, ltn, cna; SG: nanyang, zaobao; JP: asahi, yahoo.co.jp; KR: chosun
-    [NewsCategory.INTERNATIONAL]: "site:163.com OR site:chinatimes.com OR site:udn.com OR site:ltn.com.tw OR site:cna.com.tw OR site:nanyang.com OR site:zaobao.com.sg OR site:asahi.com OR site:yahoo.co.jp OR site:chosun.com OR site:cn.chosun.com OR site:asahichinese-f.com",
+    [NewsCategory.INTERNATIONAL]: "site:163.com OR site:chinatimes.com OR site:udn.com OR site:ltn.com.tw OR site:cna.com.tw OR site:nanyang.com OR site:zaobao.com.sg OR site:bbc.com/zhongwen OR site:rfi.fr/cn",
 
-    // REFACTORED: Russia-Ukraine -> Europe Sources
-    "europe": "site:bbc.com OR site:dw.com OR site:france24.com OR site:euronews.com OR site:politico.eu OR site:theguardian.com OR site:reuters.com",
-
-    // "TECH": "site:techcrunch.com OR site:theverge.com OR site:wired.com OR site:arstechnica.com OR site:36kr.com", // Removed implicit tech filter
+    // Europe Custom Category
+    "europe": "site:bbc.com OR site:dw.com OR site:france24.com OR site:euronews.com OR site:politico.eu OR site:theguardian.com OR site:reuters.com OR site:rfi.fr/cn OR site:bbc.com/zhongwen",
 
     // Local News Filters
-    [NewsCategory.GTA]: "site:thestar.com OR site:cp24.com OR site:toronto.ca OR site:cbc.ca/news/canada/toronto OR site:torontosun.com",
-    [NewsCategory.VANCOUVER]: "site:vancouversun.com OR site:vancouver.ca OR site:cbc.ca/news/canada/british-columbia OR site:theprovince.com OR site:ctvnews.ca/vancouver",
-    [NewsCategory.MONTREAL]: "site:montrealgazette.com OR site:montreal.ca OR site:cbc.ca/news/canada/montreal OR site:ctvnews.ca/montreal",
+    [NewsCategory.GTA]: "site:thestar.com OR site:cp24.com OR site:toronto.ca OR site:cbc.ca/news/canada/toronto OR site:torontosun.com OR site:singtao.ca OR site:mingpaocanada.com",
+    [NewsCategory.VANCOUVER]: "site:vancouversun.com OR site:vancouver.ca OR site:cbc.ca/news/canada/british-columbia OR site:theprovince.com OR site:ctvnews.ca/vancouver OR site:singtao.ca OR site:mingpaocanada.com",
+    [NewsCategory.MONTREAL]: "site:montrealgazette.com OR site:montreal.ca OR site:cbc.ca/news/canada/montreal OR site:ctvnews.ca/montreal OR site:sinoquebec.com",
     [NewsCategory.CALGARY]: "site:calgaryherald.com OR site:calgary.ca OR site:cbc.ca/news/canada/calgary OR site:ctvnews.ca/calgary",
     [NewsCategory.EDMONTON]: "site:edmontonjournal.com OR site:edmonton.ca OR site:cbc.ca/news/canada/edmonton OR site:ctvnews.ca/edmonton",
     [NewsCategory.WATERLOO]: "site:therecord.com OR site:regionofwaterloo.ca OR site:cbc.ca/news/canada/kitchener-waterloo OR site:kitchener.ca OR site:waterloo.ca",
@@ -527,7 +529,27 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
         titleLower.includes('cfpl') ||
         titleLower.includes('news talk') ||
         titleLower.includes('traffic and weather') ||
-        titleLower.includes('listen live')
+        titleLower.includes('listen live') ||
+        // Generic Site Descriptions / Topic Pages
+        titleLower.includes('latest news') ||
+        titleLower.includes('stories and analysis') ||
+        titleLower.includes('breaking news') ||
+        titleLower.includes('top headlines') ||
+        titleLower.includes('news and updates') ||
+        titleLower.includes('最新新闻') ||
+        titleLower.includes('故事与分析') ||
+        titleLower.includes('专题') ||
+        titleLower.includes('专栏') ||
+        titleLower.includes('频道') ||
+        titleLower.includes('精选') ||
+        titleLower.includes('汇编') ||
+        titleLower.includes('archive') ||
+        titleLower.includes('tag') ||
+        titleLower.includes('category') ||
+        titleLower.includes('collection') ||
+        // Specific case from user feedback
+        titleLower.includes('south china:') ||
+        titleLower.includes('focusing on')
       ) {
         console.log(`Skipping generic/corporate/station title: ${item.title}`);
         return false;
