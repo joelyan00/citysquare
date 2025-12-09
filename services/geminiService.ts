@@ -62,6 +62,18 @@ const CITY_CATEGORY_MAP: Record<string, NewsCategory> = {
   'Peel': NewsCategory.GTA,
   'Durham': NewsCategory.GTA,
   'Halton': NewsCategory.GTA,
+  '万锦': NewsCategory.GTA,
+  '列治文山': NewsCategory.GTA,
+  '密西沙加': NewsCategory.GTA,
+  '宾顿': NewsCategory.GTA,
+  '旺市': NewsCategory.GTA,
+  '奥克维尔': NewsCategory.GTA,
+  '伯灵顿': NewsCategory.GTA,
+  '皮克灵': NewsCategory.GTA,
+  '阿贾克斯': NewsCategory.GTA,
+  '惠特比': NewsCategory.GTA,
+  '奥沙瓦': NewsCategory.GTA,
+  '纽马克特': NewsCategory.GTA,
 
   // Vancouver
   'Vancouver': NewsCategory.VANCOUVER,
@@ -75,6 +87,15 @@ const CITY_CATEGORY_MAP: Record<string, NewsCategory> = {
   'Delta': NewsCategory.VANCOUVER,
   'Langley': NewsCategory.VANCOUVER,
   'White Rock': NewsCategory.VANCOUVER,
+  '列治文': NewsCategory.VANCOUVER,
+  '本拿比': NewsCategory.VANCOUVER,
+  '素里': NewsCategory.VANCOUVER,
+  '高贵林': NewsCategory.VANCOUVER,
+  '西温': NewsCategory.VANCOUVER,
+  '北温': NewsCategory.VANCOUVER,
+  '三角洲': NewsCategory.VANCOUVER,
+  '兰里': NewsCategory.VANCOUVER,
+  '白石': NewsCategory.VANCOUVER,
 
   // Montreal
   'Montreal': NewsCategory.MONTREAL,
@@ -402,6 +423,22 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
   let keywords = config.news.extraKeywords || "";
 
   // Check if it's a known static category
+  if (category === NewsCategory.LOCAL) {
+    // 0. Auto-Remap Local City to Regional Category
+    if (context && context !== '本地') {
+      const mappedCategory = Object.entries(CITY_CATEGORY_MAP).find(([key, val]) =>
+        context.toLowerCase() === key.toLowerCase() ||
+        context.toLowerCase().includes(key.toLowerCase())
+      )?.[1];
+
+      if (mappedCategory) {
+        console.log(`[GeminiService] Remapping Local City '${context}' to Category '${mappedCategory}'`);
+        category = mappedCategory; // Switch category!
+        // We do NOT update topic here yet, let the next block handle it based on the new category
+      }
+    }
+  }
+
   if (category === NewsCategory.LOCAL) {
     topic = context && context !== '本地' ? context : '您所在的城市';
     articleCount = config.news.localArticleCount || 15;
