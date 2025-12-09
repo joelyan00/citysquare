@@ -15,6 +15,7 @@ const POPULAR_CITIES = [
   { label: '卡尔加里 (Calgary)', value: 'Calgary' },
   { label: '埃德蒙顿 (Edmonton)', value: 'Edmonton' },
   { label: '滑铁卢 (Waterloo)', value: 'Waterloo' },
+  { label: '圭尔夫 (Guelph)', value: 'Guelph' },
   { label: '温莎 (Windsor)', value: 'Windsor' },
   { label: '伦敦 (London)', value: 'London' },
 ];
@@ -489,21 +490,19 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
 
             <div className="space-y-4">
               <div className="relative">
-                <select
+                <input
+                  type="text"
                   value={manualCityInput}
                   onChange={e => setManualCityInput(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 font-bold text-gray-800 focus:ring-2 focus:ring-brand-500 outline-none transition-all appearance-none text-lg"
-                >
-                  <option value="" disabled>请选择城市</option>
+                  placeholder="例如: Guelph, Barrie, Ottawa"
+                  list="popular-cities"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 font-bold text-gray-800 focus:ring-2 focus:ring-brand-500 outline-none transition-all text-lg"
+                />
+                <datalist id="popular-cities">
                   {POPULAR_CITIES.map(city => (
-                    <option key={city.value} value={city.value}>
-                      {city.label}
-                    </option>
+                    <option key={city.value} value={city.value}>{city.label}</option>
                   ))}
-                </select>
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                  <ChevronDown size={20} />
-                </div>
+                </datalist>
               </div>
 
               <button
