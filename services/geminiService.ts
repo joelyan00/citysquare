@@ -506,25 +506,25 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
   const SOURCE_FILTERS: Record<string, string> = {
     [NewsCategory.CHINA]: "site:sina.com.cn OR site:qq.com OR site:163.com OR site:ifeng.com OR site:thepaper.cn OR site:caixin.com OR site:jiemian.com OR site:scmp.com OR site:zaobao.com.sg",
 
-    [NewsCategory.CANADA]: "site:cbc.ca OR site:ctvnews.ca OR site:globalnews.ca OR site:canada.ca OR site:cp24.com OR site:singtao.ca OR site:mingpaocanada.com OR site:iask.ca",
+    [NewsCategory.CANADA]: "site:cbc.ca OR site:ctvnews.ca OR site:globalnews.ca OR site:canada.ca OR site:cp24.com OR site:singtao.ca OR site:mingpaocanada.com OR site:iask.ca OR site:ca.finance.yahoo.com",
 
-    [NewsCategory.USA]: "site:cnn.com OR site:nytimes.com OR site:washingtonpost.com OR site:wsj.com OR site:reuters.com OR site:worldjournal.com OR site:dwnews.com OR site:voachinese.com",
+    [NewsCategory.USA]: "site:cnn.com OR site:nytimes.com OR site:washingtonpost.com OR site:wsj.com OR site:reuters.com OR site:worldjournal.com OR site:dwnews.com OR site:voachinese.com OR site:finance.yahoo.com",
 
     // Mainland: 163.com; Taiwan: chinatimes, udn, ltn, cna; SG: nanyang, zaobao; JP: asahi, yahoo.co.jp; KR: chosun
-    [NewsCategory.INTERNATIONAL]: "site:163.com OR site:chinatimes.com OR site:udn.com OR site:ltn.com.tw OR site:cna.com.tw OR site:nanyang.com OR site:zaobao.com.sg OR site:bbc.com/zhongwen OR site:rfi.fr/cn",
+    [NewsCategory.INTERNATIONAL]: "site:163.com OR site:chinatimes.com OR site:udn.com OR site:ltn.com.tw OR site:cna.com.tw OR site:nanyang.com OR site:zaobao.com.sg OR site:bbc.com/zhongwen OR site:rfi.fr/cn OR site:finance.yahoo.com",
 
     // Europe Custom Category
     "europe": "site:bbc.com OR site:dw.com OR site:france24.com OR site:euronews.com OR site:politico.eu OR site:theguardian.com OR site:reuters.com OR site:rfi.fr/cn OR site:bbc.com/zhongwen",
 
     // Local News Filters
-    [NewsCategory.GTA]: "site:thestar.com OR site:cp24.com OR site:toronto.ca OR site:cbc.ca/news/canada/toronto OR site:torontosun.com OR site:singtao.ca OR site:mingpaocanada.com",
-    [NewsCategory.VANCOUVER]: "site:vancouversun.com OR site:vancouver.ca OR site:cbc.ca/news/canada/british-columbia OR site:theprovince.com OR site:ctvnews.ca/vancouver OR site:singtao.ca OR site:mingpaocanada.com",
-    [NewsCategory.MONTREAL]: "site:montrealgazette.com OR site:montreal.ca OR site:cbc.ca/news/canada/montreal OR site:ctvnews.ca/montreal OR site:sinoquebec.com",
-    [NewsCategory.CALGARY]: "site:calgaryherald.com OR site:calgary.ca OR site:cbc.ca/news/canada/calgary OR site:ctvnews.ca/calgary",
-    [NewsCategory.EDMONTON]: "site:edmontonjournal.com OR site:edmonton.ca OR site:cbc.ca/news/canada/edmonton OR site:ctvnews.ca/edmonton",
-    [NewsCategory.WATERLOO]: "site:therecord.com OR site:regionofwaterloo.ca OR site:cbc.ca/news/canada/kitchener-waterloo OR site:kitchener.ca OR site:waterloo.ca OR site:guelphtoday.com OR site:guelph.ca",
-    [NewsCategory.WINDSOR]: "site:windsorstar.com OR site:citywindsor.ca OR site:cbc.ca/news/canada/windsor OR site:ctvnews.ca/windsor",
-    [NewsCategory.LONDON]: "site:lfpress.com OR site:london.ca OR site:cbc.ca/news/canada/london OR site:ctvnews.ca/london"
+    [NewsCategory.GTA]: "site:thestar.com OR site:cp24.com OR site:toronto.ca OR site:cbc.ca/news/canada/toronto OR site:torontosun.com OR site:singtao.ca OR site:mingpaocanada.com OR site:ca.finance.yahoo.com",
+    [NewsCategory.VANCOUVER]: "site:vancouversun.com OR site:vancouver.ca OR site:cbc.ca/news/canada/british-columbia OR site:theprovince.com OR site:ctvnews.ca/vancouver OR site:singtao.ca OR site:mingpaocanada.com OR site:ca.finance.yahoo.com",
+    [NewsCategory.MONTREAL]: "site:montrealgazette.com OR site:montreal.ca OR site:cbc.ca/news/canada/montreal OR site:ctvnews.ca/montreal OR site:sinoquebec.com OR site:ca.finance.yahoo.com",
+    [NewsCategory.CALGARY]: "site:calgaryherald.com OR site:calgary.ca OR site:cbc.ca/news/canada/calgary OR site:ctvnews.ca/calgary OR site:ca.finance.yahoo.com",
+    [NewsCategory.EDMONTON]: "site:edmontonjournal.com OR site:edmonton.ca OR site:cbc.ca/news/canada/edmonton OR site:ctvnews.ca/edmonton OR site:ca.finance.yahoo.com",
+    [NewsCategory.WATERLOO]: "site:therecord.com OR site:regionofwaterloo.ca OR site:cbc.ca/news/canada/kitchener-waterloo OR site:kitchener.ca OR site:waterloo.ca OR site:guelphtoday.com OR site:guelph.ca OR site:ca.finance.yahoo.com",
+    [NewsCategory.WINDSOR]: "site:windsorstar.com OR site:citywindsor.ca OR site:cbc.ca/news/canada/windsor OR site:ctvnews.ca/windsor OR site:ca.finance.yahoo.com",
+    [NewsCategory.LONDON]: "site:lfpress.com OR site:london.ca OR site:cbc.ca/news/canada/london OR site:ctvnews.ca/london OR site:ca.finance.yahoo.com"
   };
 
   // Append source filter if available
@@ -545,9 +545,18 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
     // But 'news' works for Chinese too usually. To be safe for English sites, use 'news' or nothing.
     // Let's use 'news' for all to ensure English sites are matched.
     const newsSuffix = 'news';
+
+    // For Local/Mapped categories, append specific topics
+    let topicSuffix = "";
+    if (category === NewsCategory.LOCAL || CITY_CATEGORY_MAP[category]) {
+      topicSuffix = '("Real Estate" OR "Housing" OR "Crime" OR "Police" OR "Chinese Community" OR "Investment" OR "Finance" OR "News")';
+    } else {
+      topicSuffix = newsSuffix;
+    }
+
     const searchQuery = sourceFilter
-      ? `${topic} ${newsSuffix} (${sourceFilter}) ${formattedKeywords}`
-      : `${topic} ${newsSuffix} ${formattedKeywords}`;
+      ? `${topic} ${topicSuffix} (${sourceFilter}) ${formattedKeywords}`
+      : `${topic} ${topicSuffix} ${formattedKeywords}`;
 
     console.log(`[GoogleSearch] Query: ${searchQuery}`);
 
