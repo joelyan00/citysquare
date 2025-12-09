@@ -475,10 +475,10 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
     keywords = "Chinese American, 华人, 美国华人, Chinese Community, H-1B, Visa, Chinatown";
     if (config.news.usaKeywords) keywords += `, ${config.news.usaKeywords}`;
   } else if (category === NewsCategory.CHINA) {
-    topic = 'China News';
+    topic = 'Technology & Science';
     articleCount = config.news.chinaArticleCount || 10;
     timeWindow = config.news.chinaTimeWindow || "24 hours";
-    keywords = "China Society, China Economy, China Technology, Chinese Culture, Social Issues, 民生, 社会, 经济";
+    keywords = "Technology, AI, Internet, 5G, Electric Vehicles, Science, Startup, 科技, 互联网, 人工智能, 电动车, 科学, 数码, 创业, 硬科技, 芯片";
   } else if (category === NewsCategory.INTERNATIONAL) {
     // REFACTORED: International -> Global Chinese & East Asia
     topic = 'Global Chinese Community & East Asia';
@@ -504,7 +504,7 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
 
   // Authoritative Source Filters
   const SOURCE_FILTERS: Record<string, string> = {
-    [NewsCategory.CHINA]: "site:sina.com.cn OR site:qq.com OR site:163.com OR site:ifeng.com OR site:thepaper.cn OR site:caixin.com OR site:jiemian.com OR site:scmp.com OR site:zaobao.com.sg",
+    [NewsCategory.CHINA]: "site:36kr.com OR site:huxiu.com OR site:cnbeta.com.tw OR site:ithome.com OR site:sina.com.cn/tech OR site:tech.qq.com OR site:tech.163.com OR site:jiemian.com OR site:thepaper.cn",
 
     [NewsCategory.CANADA]: "site:cbc.ca OR site:ctvnews.ca OR site:globalnews.ca OR site:canada.ca OR site:cp24.com OR site:singtao.ca OR site:mingpaocanada.com OR site:iask.ca OR site:ca.finance.yahoo.com",
 
