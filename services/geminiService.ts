@@ -88,11 +88,13 @@ const CITY_CATEGORY_MAP: Record<string, NewsCategory> = {
   'Edmonton': NewsCategory.EDMONTON,
   '埃德蒙顿': NewsCategory.EDMONTON,
 
-  // Waterloo
+  // Waterloo Region & Guelph
   'Waterloo': NewsCategory.WATERLOO,
   'Kitchener': NewsCategory.WATERLOO,
   'Cambridge': NewsCategory.WATERLOO,
+  'Guelph': NewsCategory.WATERLOO,
   '滑铁卢': NewsCategory.WATERLOO,
+  '圭尔夫': NewsCategory.WATERLOO,
 
   // Windsor
   'Windsor': NewsCategory.WINDSOR,
@@ -414,7 +416,7 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
       [NewsCategory.MONTREAL]: 'Montreal',
       [NewsCategory.CALGARY]: 'Calgary',
       [NewsCategory.EDMONTON]: 'Edmonton',
-      [NewsCategory.WATERLOO]: 'Waterloo Region',
+      [NewsCategory.WATERLOO]: 'Waterloo OR Kitchener OR Cambridge OR Guelph',
       [NewsCategory.WINDSOR]: 'Windsor',
       [NewsCategory.LONDON]: 'London, Ontario'
     };
@@ -481,7 +483,7 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
     [NewsCategory.MONTREAL]: "site:montrealgazette.com OR site:montreal.ca OR site:cbc.ca/news/canada/montreal OR site:ctvnews.ca/montreal OR site:sinoquebec.com",
     [NewsCategory.CALGARY]: "site:calgaryherald.com OR site:calgary.ca OR site:cbc.ca/news/canada/calgary OR site:ctvnews.ca/calgary",
     [NewsCategory.EDMONTON]: "site:edmontonjournal.com OR site:edmonton.ca OR site:cbc.ca/news/canada/edmonton OR site:ctvnews.ca/edmonton",
-    [NewsCategory.WATERLOO]: "site:therecord.com OR site:regionofwaterloo.ca OR site:cbc.ca/news/canada/kitchener-waterloo OR site:kitchener.ca OR site:waterloo.ca",
+    [NewsCategory.WATERLOO]: "site:therecord.com OR site:regionofwaterloo.ca OR site:cbc.ca/news/canada/kitchener-waterloo OR site:kitchener.ca OR site:waterloo.ca OR site:guelphtoday.com OR site:guelph.ca",
     [NewsCategory.WINDSOR]: "site:windsorstar.com OR site:citywindsor.ca OR site:cbc.ca/news/canada/windsor OR site:ctvnews.ca/windsor",
     [NewsCategory.LONDON]: "site:lfpress.com OR site:london.ca OR site:cbc.ca/news/canada/london OR site:ctvnews.ca/london"
   };
@@ -589,8 +591,7 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
 
       // Strict Filter for Mapped Cities (Waterloo, London, etc.)
       const cityMap: Record<string, string> = {
-        [NewsCategory.WATERLOO]: 'waterloo',
-        [NewsCategory.GUELPH]: 'guelph',
+        [NewsCategory.WATERLOO]: 'waterloo', // Will be overridden by special check below
         [NewsCategory.LONDON]: 'london',
         [NewsCategory.WINDSOR]: 'windsor',
         [NewsCategory.GTA]: 'toronto',
@@ -619,6 +620,15 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
           const hasKeyword = vanKeywords.some(k => textLower.includes(k));
           if (!hasKeyword) {
             console.log(`Skipping item not matching Vancouver keywords: ${item.title}`);
+            return false;
+          }
+        }
+        // Special handling for Waterloo/Guelph (Multiple Keywords)
+        else if (category === NewsCategory.WATERLOO) {
+          const kwgKeywords = ['waterloo', 'kitchener', 'cambridge', 'guelph'];
+          const hasKeyword = kwgKeywords.some(k => textLower.includes(k));
+          if (!hasKeyword) {
+            console.log(`Skipping item not matching K-W-Guelph keywords: ${item.title}`);
             return false;
           }
         }

@@ -14,8 +14,8 @@ const POPULAR_CITIES = [
   { label: '蒙特利尔 (Montreal)', value: 'Montreal' },
   { label: '卡尔加里 (Calgary)', value: 'Calgary' },
   { label: '埃德蒙顿 (Edmonton)', value: 'Edmonton' },
-  { label: '滑铁卢 (Waterloo)', value: 'Waterloo' },
-  { label: '圭尔夫 (Guelph)', value: 'Guelph' },
+  { label: '滑铁卢/圭尔夫 (Waterloo/Guelph)', value: 'Waterloo' },
+
   { label: '温莎 (Windsor)', value: 'Windsor' },
   { label: '伦敦 (London)', value: 'London' },
 ];
