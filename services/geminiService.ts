@@ -49,6 +49,19 @@ const CITY_CATEGORY_MAP: Record<string, NewsCategory> = {
   'Markham': NewsCategory.GTA,
   'Richmond Hill': NewsCategory.GTA,
   'Mississauga': NewsCategory.GTA,
+  'Brampton': NewsCategory.GTA,
+  'Vaughan': NewsCategory.GTA,
+  'Oakville': NewsCategory.GTA,
+  'Burlington': NewsCategory.GTA,
+  'Pickering': NewsCategory.GTA,
+  'Ajax': NewsCategory.GTA,
+  'Whitby': NewsCategory.GTA,
+  'Oshawa': NewsCategory.GTA,
+  'Newmarket': NewsCategory.GTA,
+  'York': NewsCategory.GTA,
+  'Peel': NewsCategory.GTA,
+  'Durham': NewsCategory.GTA,
+  'Halton': NewsCategory.GTA,
 
   // Vancouver
   'Vancouver': NewsCategory.VANCOUVER,
@@ -389,7 +402,7 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
   ].includes(category as NewsCategory)) {
     // Treat new cities as Local News but with specific topic
     const cityMap: Record<string, string> = {
-      [NewsCategory.GTA]: 'Greater Toronto Area',
+      [NewsCategory.GTA]: 'Toronto OR "York Region" OR "Peel Region" OR "Durham Region" OR "Halton Region"',
       [NewsCategory.VANCOUVER]: 'Vancouver',
       [NewsCategory.MONTREAL]: 'Montreal',
       [NewsCategory.CALGARY]: 'Calgary',
@@ -583,9 +596,20 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
       if (cityMap[category]) {
         const requiredKeyword = cityMap[category];
         const textLower = (item.title + ' ' + item.snippet).toLowerCase();
-        if (!textLower.includes(requiredKeyword)) {
-          console.log(`Skipping item not matching category ${category}: ${item.title}`);
-          return false;
+
+        // Special handling for GTA (Multiple Keywords)
+        if (category === NewsCategory.GTA) {
+          const gtaKeywords = ['toronto', 'gta', 'york', 'peel', 'durham', 'halton', 'mississauga', 'brampton', 'markham', 'vaughan', 'oakville', 'burlington', 'richmond hill'];
+          const hasKeyword = gtaKeywords.some(k => textLower.includes(k));
+          if (!hasKeyword) {
+            console.log(`Skipping item not matching GTA keywords: ${item.title}`);
+            return false;
+          }
+        } else {
+          if (!textLower.includes(requiredKeyword)) {
+            console.log(`Skipping item not matching category ${category}: ${item.title}`);
+            return false;
+          }
         }
       }
 
