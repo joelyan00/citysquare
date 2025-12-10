@@ -663,6 +663,26 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
         'usa', 'u.s.', 'united states', 'uk', 'united kingdom', 'australia', 'india', 'china', 'japan', 'russia'
       ];
 
+      // 2. Negative Filter for USA Category: Exclude Canada-specific news
+      if (category === NewsCategory.USA) {
+        const canadaKeywords = ['canada', 'canadian', 'toronto', 'vancouver', 'montreal', 'ottawa', 'calgary', 'edmonton', 'winnipeg', 'halifax', 'justin trudeau', 'trudeau'];
+        const hasCanada = canadaKeywords.some(k => titleLower.includes(k));
+        if (hasCanada) {
+          console.log(`Skipping Canada news in USA feed: ${item.title}`);
+          return false;
+        }
+      }
+
+      // 3. Negative Filter for Canada Category: Exclude USA-specific news
+      if (category === NewsCategory.CANADA) {
+        const usaKeywords = ['usa', 'united states', 'white house', 'congress', 'senate', 'biden', 'trump', ...NON_LOCAL_KEYWORDS];
+        const hasUSA = usaKeywords.some(k => titleLower.includes(k));
+        if (hasUSA) {
+          console.log(`Skipping USA news in Canada feed: ${item.title}`);
+          return false;
+        }
+      }
+
       if (cityMap[category]) {
         const requiredKeyword = cityMap[category];
         const textLower = (item.title + ' ' + item.snippet).toLowerCase();
