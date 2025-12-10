@@ -657,9 +657,24 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
         [NewsCategory.EDMONTON]: 'edmonton',
       };
 
+      // Negative Keywords to exclude US/International news from Local feeds
+      const NON_LOCAL_KEYWORDS = [
+        'kentucky', 'alabama', 'arkansas', 'arizona', 'california', 'colorado', 'connecticut', 'delaware', 'florida', 'georgia', 'hawaii', 'idaho', 'illinois', 'indiana', 'iowa', 'kansas', 'louisiana', 'maine', 'maryland', 'massachusetts', 'michigan', 'minnesota', 'mississippi', 'missouri', 'montana', 'nebraska', 'nevada', 'new hampshire', 'new jersey', 'new mexico', 'new york', 'north carolina', 'north dakota', 'ohio', 'oklahoma', 'oregon', 'pennsylvania', 'rhode island', 'south carolina', 'south dakota', 'tennessee', 'texas', 'utah', 'vermont', 'virginia', 'washington', 'west virginia', 'wisconsin', 'wyoming',
+        'usa', 'u.s.', 'united states', 'uk', 'united kingdom', 'australia', 'india', 'china', 'japan', 'russia'
+      ];
+
       if (cityMap[category]) {
         const requiredKeyword = cityMap[category];
         const textLower = (item.title + ' ' + item.snippet).toLowerCase();
+        const titleLower = item.title.toLowerCase();
+
+        // 1. Negative Filter: Check for US States/Countries in Title
+        // We only check Title to avoid false positives in snippet (e.g. "compared to New York")
+        const hasNonLocal = NON_LOCAL_KEYWORDS.some(k => titleLower.includes(k));
+        if (hasNonLocal) {
+          console.log(`Skipping item with non-local keyword: ${item.title}`);
+          return false;
+        }
 
         // Special handling for GTA (Multiple Keywords)
         if (category === NewsCategory.GTA) {
