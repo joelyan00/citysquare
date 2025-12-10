@@ -18,7 +18,7 @@ export const GoogleSearchService = {
         const cx = process.env.GOOGLE_SEARCH_CX;
 
         if (!apiKey || !cx) {
-            console.warn("Google Search API Key or CX not configured.");
+            console.warn(`Google Search API Key or CX not configured. API_KEY present: ${!!apiKey}, CX present: ${!!cx}`);
             return [];
         }
 

@@ -483,7 +483,7 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
     topic = 'Global Finance & Economy';
     articleCount = config.news.intlArticleCount || 10;
     timeWindow = config.news.intlTimeWindow || "24 hours";
-    keywords = "Finance, Stock Market, Economy, Investment, Crypto, 财经, 股市, 经济, 投资, 美股, 港股, A股, 加密货币, 房产投资";
+    keywords = "Finance, Stock Market, Economy, Investment, Wealth Management, Personal Finance, Crypto, 财经, 股市, 经济, 投资, 理财, 美股, 港股, A股, 加密货币, 房产投资";
   } else if (category === NewsCategory.INTERNATIONAL) {
     // REFACTORED: International -> Global Chinese & East Asia
     topic = 'Global Chinese Community & East Asia';
