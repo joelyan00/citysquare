@@ -796,24 +796,25 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
     const isNode = typeof window === 'undefined';
 
     const articlesContextPromises = limitedResults.map(async (item, index) => {
-      let contextText = item.snippet;
+      let contextText = '';
 
       // Try to get full content if in Node
       if (isNode) {
         try {
           const fullContent = await fetchArticleContent(item.link);
-          if (fullContent && fullContent.length > 200) {
-            contextText = fullContent.slice(0, 5000); // Limit context window
+          if (fullContent && fullContent.length > 300) { // Increased threshold to ensure substance
+            contextText = fullContent.slice(0, 8000); // Increased context window
+          } else {
+            console.log(`[GeminiService] Content too short or failed for ${item.link}, skipping.`);
+            return null; // SKIP if no full content
           }
         } catch (e) {
-          console.warn(`Failed to fetch content for ${item.link}, falling back to snippet.`);
+          console.warn(`Failed to fetch content for ${item.link}, skipping.`);
+          return null; // SKIP on error
         }
       } else {
-        // Fallback to og:description in browser
-        const ogDescription = item.pagemap?.metatags?.find(m => m['og:description'])?.['og:description'];
-        if (ogDescription && ogDescription.length > item.snippet.length) {
-          contextText = ogDescription;
-        }
+        // Browser fallback (shouldn't happen in production fetch)
+        return null;
       }
 
       return `
@@ -822,31 +823,33 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
       Content: ${contextText}
     `});
 
-    const articlesContext = (await Promise.all(articlesContextPromises)).join('\n\n');
+    const resolvedContexts = await Promise.all(articlesContextPromises);
+    const validContexts = resolvedContexts.filter(c => c !== null);
+
+    if (validContexts.length === 0) {
+      console.log("[GeminiService] No valid articles with full content found.");
+      return [];
+    }
+
+    const articlesContext = validContexts.join('\n\n');
 
     const systemInstruction = `You are a professional journalist for "City666".
-    Your task is to summarize the provided news items.
+    Your task is to summarize the provided news items based on their **FULL CONTENT**.
     
-    INPUT: A list of news items with ID, Title, and Content (or Snippet).
+    INPUT: A list of news items with ID, Title, and Full Content.
     OUTPUT: A JSON array of news objects.
 
     CRITICAL RULES:
-    1. **Content Quality**: Focus on **SPECIFIC DETAILS**. You MUST include:
-       - **Who**: Specific names of people, organizations, or countries.
-       - **What**: The specific event, action, or announcement.
-       - **When**: Dates or times mentioned.
-       - **Where**: Specific locations (cities, regions).
-       - **Why/How**: The reason or method.
-       - **Numbers**: Statistics, money amounts, percentages.
-    2. **Single Story Focus**: If the input content appears to be a list of multiple unrelated headlines (e.g. "Digest", "Roundup", "Lite"), **SELECT THE SINGLE MOST IMPORTANT STORY** from the list and write a detailed report on that ONE story only. **DO NOT** output a list of bullet points covering multiple topics.
-    3. **Content Length**: Write a **DETAILED** summary for each item. It MUST be at least **200 Chinese characters** long. If the source content is short, elaborate on the context, background, or implications to meet the length requirement.
+    1. **Content Quality**: Read the **FULL CONTENT** carefully. Summarize the **MAIN EVENT** into a **SINGLE, CONCISE PARAGRAPH** (approx 150-200 Chinese characters).
+    2. **No Lists**: Do NOT output bullet points or a list of headlines. Integrate the information into a coherent narrative paragraph.
+    3. **Single Story Focus**: If the content mentions multiple events (e.g. a digest), pick the **MOST IMPORTANT ONE** and focus solely on that.
     4. **Language**: ALWAYS write Title and Content in **CHINESE (Simplified)**.
     5. **ID**: You MUST return the exact **Item ID** provided in the input.
     6. **Source**: Extract the source name from the Title (e.g. 'CBC', 'CTV').
     7. **No Generic Content**: If the content is "Subscribe to read" or "Enable JS", ignore it.
 
     Output JSON Format:
-    [{ "id": 0, "title": "Chinese Title", "summary": "Chinese Summary (>200 chars)", "content": "Chinese Summary (>200 chars)", "source_name": "Source" }]
+    [{ "id": 0, "title": "Chinese Title", "summary": "Concise Chinese Paragraph", "content": "Concise Chinese Paragraph", "source_name": "Source" }]
     `;
 
     // 3. Generate Summaries with Gemini
