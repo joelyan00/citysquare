@@ -607,6 +607,10 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
         titleLower.includes('cfpl') ||
         titleLower.includes('news talk') ||
         titleLower.includes('traffic and weather') ||
+        titleLower.includes('weather & traffic') ||
+        titleLower.includes('weather and traffic') ||
+        titleLower.includes('sports news') ||
+        titleLower.includes('local news') ||
         titleLower.includes('listen live') ||
         // Generic Site Descriptions / Topic Pages
         titleLower.includes('latest news') ||
