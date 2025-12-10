@@ -412,7 +412,7 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
           <div className="relative border-b border-gray-200 dark:border-gray-700">
             <div
               ref={scrollContainerRef}
-              className={`flex overflow-x-auto px-4 no-scrollbar gap-6 w-full ${showScrollButton ? 'pr-12' : ''}`}
+              className={`flex overflow-x-auto px-4 gap-4 md:gap-6 w-full scrollbar-hide ${showScrollButton ? 'pr-12' : ''}`}
             >
               {allCategories.map((cat) => (
                 <button
