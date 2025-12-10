@@ -810,7 +810,8 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
         if (!url) return false;
         if (!url.startsWith('http://') && !url.startsWith('https://')) return false;
         if (url.includes('x-raw-image')) return false;
-        // Filter out known bad domains or patterns if needed
+        // Filter out logos and icons which are often generic
+        if (url.toLowerCase().includes('logo') || url.toLowerCase().includes('icon')) return false;
         return true;
       };
 
@@ -820,10 +821,9 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
       if (isValidImageUrl(ogImage)) {
         imageUrl = ogImage;
       }
-      // 2. Fallback to cse_image (Thumbnail)
-      else if (isValidImageUrl(originalItem.pagemap?.cse_image?.[0]?.src)) {
-        imageUrl = originalItem.pagemap.cse_image[0].src;
-      }
+      // 2. REMOVED cse_image fallback
+      // Google's cse_image often picks up random sidebar images (like stock tickers, logos) which leads to mismatches.
+      // We prefer to fall back to AI generation which is context-aware.
 
       // 3. Fallback to AI Image Generation (only if no image found)
       if (!imageUrl) {
