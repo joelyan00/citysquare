@@ -683,6 +683,27 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
         }
       }
 
+      // 4. Negative Filter for International (East Asia): Exclude USA, Canada, Europe
+      if (category === NewsCategory.INTERNATIONAL) {
+        const westernKeywords = ['usa', 'united states', 'canada', 'toronto', 'vancouver', 'london', 'uk', 'france', 'germany', 'europe', 'eu', 'nato', 'ukraine', 'russia'];
+        const hasWestern = westernKeywords.some(k => titleLower.includes(k));
+        if (hasWestern) {
+          console.log(`Skipping Western news in East Asia feed: ${item.title}`);
+          return false;
+        }
+      }
+
+      // 5. Negative Filter for Europe (Custom Category Detection)
+      // Assuming the custom category ID or Name might contain "Europe"
+      if (typeof category === 'string' && (category.toLowerCase().includes('europe') || category.toLowerCase().includes('欧洲'))) {
+        const nonEuropeKeywords = ['usa', 'united states', 'canada', 'china', 'japan', 'korea', 'asia', 'beijing', 'tokyo', 'shanghai'];
+        const hasNonEurope = nonEuropeKeywords.some(k => titleLower.includes(k));
+        if (hasNonEurope) {
+          console.log(`Skipping Non-Europe news in Europe feed: ${item.title}`);
+          return false;
+        }
+      }
+
       if (cityMap[category]) {
         const requiredKeyword = cityMap[category];
         const textLower = (item.title + ' ' + item.snippet).toLowerCase();
