@@ -626,10 +626,18 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
         titleLower.includes('category') ||
         titleLower.includes('collection') ||
         // Specific case from user feedback
-        titleLower.includes('south china:') ||
-        titleLower.includes('focusing on')
+        titleLower.includes('focusing on') ||
+        // Digest / Index Pages (Fix for "List of Headlines" issue)
+        titleLower.includes('lite') ||
+        titleLower.includes('digest') ||
+        titleLower.includes('roundup') ||
+        titleLower.includes('briefing') ||
+        titleLower.includes('top stories') ||
+        titleLower.includes('headlines') ||
+        titleLower.includes('morning update') ||
+        titleLower.includes('evening update')
       ) {
-        console.log(`Skipping generic/corporate/station title: ${item.title}`);
+        console.log(`Skipping generic/corporate/station/digest title: ${item.title}`);
         return false;
       }
       // Strict Location Filter for Local News
@@ -818,11 +826,12 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
        - **Where**: Specific locations (cities, regions).
        - **Why/How**: The reason or method.
        - **Numbers**: Statistics, money amounts, percentages.
-    2. **Content Length**: Write a **DETAILED** summary for each item. It MUST be at least **200 Chinese characters** long. If the source content is short, elaborate on the context, background, or implications to meet the length requirement.
-    3. **Language**: ALWAYS write Title and Content in **CHINESE (Simplified)**.
-    4. **ID**: You MUST return the exact **Item ID** provided in the input.
-    5. **Source**: Extract the source name from the Title (e.g. 'CBC', 'CTV').
-    6. **No Generic Content**: If the content is "Subscribe to read" or "Enable JS", ignore it.
+    2. **Single Story Focus**: If the input content appears to be a list of multiple unrelated headlines (e.g. "Digest", "Roundup", "Lite"), **SELECT THE SINGLE MOST IMPORTANT STORY** from the list and write a detailed report on that ONE story only. **DO NOT** output a list of bullet points covering multiple topics.
+    3. **Content Length**: Write a **DETAILED** summary for each item. It MUST be at least **200 Chinese characters** long. If the source content is short, elaborate on the context, background, or implications to meet the length requirement.
+    4. **Language**: ALWAYS write Title and Content in **CHINESE (Simplified)**.
+    5. **ID**: You MUST return the exact **Item ID** provided in the input.
+    6. **Source**: Extract the source name from the Title (e.g. 'CBC', 'CTV').
+    7. **No Generic Content**: If the content is "Subscribe to read" or "Enable JS", ignore it.
 
     Output JSON Format:
     [{ "id": 0, "title": "Chinese Title", "summary": "Chinese Summary (>200 chars)", "content": "Chinese Summary (>200 chars)", "source_name": "Source" }]
