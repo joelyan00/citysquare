@@ -13,7 +13,7 @@ export interface GoogleSearchResult {
 }
 
 export const GoogleSearchService = {
-    search: async (query: string, timeWindow: string = 'd1', maxResults: number = 30): Promise<GoogleSearchResult[]> => {
+    search: async (query: string, timeWindow: string = 'd1', maxResults: number = 50): Promise<GoogleSearchResult[]> => {
         const apiKey = process.env.GOOGLE_SEARCH_API_KEY || process.env.API_KEY;
         const cx = process.env.GOOGLE_SEARCH_CX;
 

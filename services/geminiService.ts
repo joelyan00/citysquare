@@ -566,9 +566,9 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
       ? `${topic} ${topicSuffix} (${sourceFilter}) ${formattedKeywords}`
       : `${topic} ${topicSuffix} ${formattedKeywords}`;
 
-    console.log(`[GoogleSearch] Query: ${searchQuery}`);
-
-    const searchResults = await GoogleSearchService.search(searchQuery, timeWindow);
+    // 1. Search Google
+    console.log(`[GoogleSearch] Query: ${topic} news (${searchQuery})`);
+    const searchResults = await GoogleSearchService.search(searchQuery, timeWindow, 50);
 
     if (!searchResults || searchResults.length === 0) {
       console.warn("[GoogleSearch] No results found. Check API Key/CX or Query.");
