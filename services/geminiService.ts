@@ -635,7 +635,19 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
         titleLower.includes('top stories') ||
         titleLower.includes('headlines') ||
         titleLower.includes('morning update') ||
-        titleLower.includes('evening update')
+        titleLower.includes('evening update') ||
+        // Section Homepages / Topic Pages
+        titleLower.includes('arts') ||
+        titleLower.includes('culture') ||
+        titleLower.includes('opinion') ||
+        titleLower.includes('editorial') ||
+        titleLower.includes('letters to the editor') ||
+        titleLower.includes('travel') ||
+        titleLower.includes('style') ||
+        titleLower.includes('week in review') ||
+        titleLower.includes('photos') ||
+        titleLower.includes('video') ||
+        titleLower.includes('watch')
       ) {
         console.log(`Skipping generic/corporate/station/digest title: ${item.title}`);
         return false;
