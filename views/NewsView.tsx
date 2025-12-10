@@ -418,9 +418,9 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
                 <button
                   key={cat.id}
                   onClick={() => setActiveCategory(cat.id)}
-                  className={`flex-shrink-0 whitespace-nowrap py-3 text-sm font-medium transition-all relative ${activeCategory === cat.id
+                  className={`flex-shrink-0 whitespace-nowrap py-3 text-sm font-bold transition-all relative ${activeCategory === cat.id
                     ? 'text-brand-600 dark:text-brand-400'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                    : 'text-gray-900 dark:text-gray-200 hover:text-black dark:hover:text-white'
                     }`}
                 >
                   {cat.isLocal && (
