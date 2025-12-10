@@ -518,7 +518,7 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
     [NewsCategory.FINANCE]: "site:finance.yahoo.com OR site:ca.finance.yahoo.com OR site:cnbc.com OR site:bloomberg.com OR site:wsj.com OR site:ft.com OR site:sina.com.cn/finance OR site:finance.qq.com OR site:wallstreetcn.com OR site:cls.cn",
 
     // Mainland: 163.com; Taiwan: chinatimes, udn, ltn, cna; SG: nanyang, zaobao; JP: asahi, yahoo.co.jp; KR: chosun
-    [NewsCategory.INTERNATIONAL]: "site:163.com OR site:chinatimes.com OR site:udn.com OR site:ltn.com.tw OR site:cna.com.tw OR site:nanyang.com OR site:zaobao.com.sg OR site:bbc.com/zhongwen OR site:rfi.fr/cn OR site:finance.yahoo.com",
+    [NewsCategory.INTERNATIONAL]: "site:163.com OR site:chinatimes.com OR site:udn.com OR site:ltn.com.tw OR site:cna.com.tw OR site:nanyang.com OR site:zaobao.com.sg OR site:tw.nextapple.com OR site:bbc.com/zhongwen OR site:rfi.fr/cn OR site:finance.yahoo.com",
 
     // Europe Custom Category
     "europe": "site:bbc.com OR site:dw.com OR site:france24.com OR site:euronews.com OR site:politico.eu OR site:theguardian.com OR site:reuters.com OR site:rfi.fr/cn OR site:bbc.com/zhongwen",
@@ -687,7 +687,8 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
       // Negative Keywords to exclude US/International news from Local feeds
       const NON_LOCAL_KEYWORDS = [
         'kentucky', 'alabama', 'arkansas', 'arizona', 'california', 'colorado', 'connecticut', 'delaware', 'florida', 'georgia', 'hawaii', 'idaho', 'illinois', 'indiana', 'iowa', 'kansas', 'louisiana', 'maine', 'maryland', 'massachusetts', 'michigan', 'minnesota', 'mississippi', 'missouri', 'montana', 'nebraska', 'nevada', 'new hampshire', 'new jersey', 'new mexico', 'new york', 'north carolina', 'north dakota', 'ohio', 'oklahoma', 'oregon', 'pennsylvania', 'rhode island', 'south carolina', 'south dakota', 'tennessee', 'texas', 'utah', 'vermont', 'virginia', 'washington', 'west virginia', 'wisconsin', 'wyoming',
-        'usa', 'u.s.', 'united states', 'uk', 'united kingdom', 'australia', 'india', 'china', 'japan', 'russia'
+        'usa', 'u.s.', 'united states', 'uk', 'united kingdom', 'australia', 'india', 'china', 'japan', 'russia',
+        'fda', 'fbi', 'cia', 'nasa', 'white house', 'congress', 'senate', 'pentagon', 'supreme court', 'biden', 'trump', 'harris'
       ];
 
       // 2. Negative Filter for USA Category: Exclude Canada-specific news
