@@ -336,8 +336,8 @@ const isDeepLink = (url: string): boolean => {
     // Reject root paths
     if (u.pathname === '/' || u.pathname === '') return false;
     // Reject common top-level paths
-    const badPaths = ['/news', '/home', '/index', '/en', '/zh', '/category', '/articles'];
-    if (badPaths.includes(u.pathname.replace(/\/$/, ''))) return false;
+    const badPaths = ['/news', '/home', '/index', '/en', '/zh', '/category', '/articles', '/sounds', '/programmes', '/player', '/video', '/audio', '/watch', '/listen'];
+    if (badPaths.some(p => u.pathname.startsWith(p) || u.pathname.includes(p))) return false;
     // Deep links usually have longer paths or query parameters
     return u.pathname.length > 10 || u.search.length > 5;
   } catch (e) {
@@ -647,7 +647,14 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
         titleLower.includes('week in review') ||
         titleLower.includes('photos') ||
         titleLower.includes('video') ||
-        titleLower.includes('watch')
+        titleLower.includes('watch') ||
+        // Audio / Video Index Pages
+        titleLower.includes('bbc sounds') ||
+        titleLower.includes('audio') ||
+        titleLower.includes('interview') ||
+        titleLower.includes('programme') ||
+        titleLower.includes('episode') ||
+        titleLower.includes('podcast')
       ) {
         console.log(`Skipping generic/corporate/station/digest title: ${item.title}`);
         return false;
