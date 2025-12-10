@@ -611,6 +611,7 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
         titleLower.includes('weather and traffic') ||
         titleLower.includes('sports news') ||
         titleLower.includes('local news') ||
+        titleLower.includes('news update') ||
         titleLower.includes('listen live') ||
         // Generic Site Descriptions / Topic Pages
         titleLower.includes('latest news') ||
@@ -815,6 +816,17 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
         try {
           const fullContent = await fetchArticleContent(item.link);
           if (fullContent && fullContent.length > 300) { // Increased threshold to ensure substance
+            // Content Filter: Check for affiliate/shopping disclaimers
+            const lowerContent = fullContent.toLowerCase();
+            if (
+              lowerContent.includes('earn a commission') ||
+              lowerContent.includes('affiliate commission') ||
+              lowerContent.includes('shopping link') ||
+              lowerContent.includes('buy through our links')
+            ) {
+              console.log(`[GeminiService] Skipping affiliate/shopping content: ${item.title}`);
+              return null;
+            }
             contextText = fullContent.slice(0, 8000); // Increased context window
           } else {
             console.log(`[GeminiService] Content too short or failed for ${item.link}, skipping.`);
