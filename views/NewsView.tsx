@@ -51,6 +51,59 @@ interface NewsViewProps {
   toggleTheme?: () => void;
 }
 
+// Helper to deduplicate news items
+const deduplicateNews = (items: NewsItem[]): NewsItem[] => {
+  const uniqueItems: NewsItem[] = [];
+
+  for (const item of items) {
+    // Normalize: remove punctuation, spaces, lowercase
+    const normItem = item.title.toLowerCase().replace(/[^\w\u4e00-\u9fa5]/g, '');
+
+    let isDuplicate = false;
+    let replaceIndex = -1;
+
+    for (let i = 0; i < uniqueItems.length; i++) {
+      const existing = uniqueItems[i];
+      const normExisting = existing.title.toLowerCase().replace(/[^\w\u4e00-\u9fa5]/g, '');
+
+      // Check for containment (one is substring of other)
+      // Enforce a minimum length ratio to avoid false positives (e.g. "Apple" vs "Apple Pie")
+      const isSubstring = normItem.includes(normExisting) || normExisting.includes(normItem);
+      const ratio = Math.min(normItem.length, normExisting.length) / Math.max(normItem.length, normExisting.length);
+
+      if (isSubstring && ratio > 0.6) {
+        isDuplicate = true;
+
+        // Decide which one to keep
+        // 1. Prefer one without "..." at the end
+        const itemHasEllipsis = item.title.trim().endsWith('...');
+        const existingHasEllipsis = existing.title.trim().endsWith('...');
+
+        if (existingHasEllipsis && !itemHasEllipsis) {
+          replaceIndex = i; // Found a better version, replace existing
+        } else if (!existingHasEllipsis && itemHasEllipsis) {
+          // Existing is better, keep it (do nothing)
+        } else {
+          // Both have ellipsis or both don't: prefer the longer one
+          if (item.title.length > existing.title.length) {
+            replaceIndex = i;
+          }
+        }
+        break;
+      }
+    }
+
+    if (isDuplicate) {
+      if (replaceIndex !== -1) {
+        uniqueItems[replaceIndex] = item;
+      }
+    } else {
+      uniqueItems.push(item);
+    }
+  }
+  return uniqueItems;
+};
+
 const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigate, isDarkMode, toggleTheme }) => {
   // Initialize state from localStorage if available
   const [activeCategory, setActiveCategory] = useState<string>(() => {
@@ -133,7 +186,7 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
     setCustomCategories(config.news.customCategories || []);
 
     const data = await NewsDatabase.getByCategory(activeCategory as NewsCategory, city); // Cast for now, service handles string
-    setNewsData(data);
+    setNewsData(deduplicateNews(data));
 
     // Load Ads
     const activeAds = await AdDatabase.getActiveAds();
