@@ -38,7 +38,8 @@ export enum NewsCategory {
   WATERLOO = 'Waterloo',
   GUELPH = 'Guelph',
   WINDSOR = 'Windsor',
-  LONDON = 'London'
+  LONDON = 'London',
+  FINANCE = 'Finance'
 }
 
 export interface NewsItem {

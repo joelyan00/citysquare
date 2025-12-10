@@ -33,13 +33,14 @@ const POPULAR_CITIES = [
 const staticCategoryLabels: Partial<Record<NewsCategory, string>> = {
   [NewsCategory.CANADA]: '加拿大',
   [NewsCategory.USA]: '美国',
-  [NewsCategory.INTERNATIONAL]: '东亚', // Was International
-  [NewsCategory.CHINA]: '科技',      // Was China
+  [NewsCategory.INTERNATIONAL]: '东亚',
+  [NewsCategory.FINANCE]: '财经',
+  [NewsCategory.CHINA]: '科技',
 };
 
+// ...
+
 const CATEGORY_STORAGE_KEY = 'urbanhub_active_category';
-
-
 
 interface NewsViewProps {
   city: string;
@@ -75,32 +76,36 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const shareCardRef = React.useRef<HTMLDivElement>(null);
 
-
-
   // Persist active category whenever it changes
   useEffect(() => {
     localStorage.setItem(CATEGORY_STORAGE_KEY, activeCategory);
   }, [activeCategory]);
 
   // Prepare all categories list for easy rendering
-  const allCategories = React.useMemo(() => [
-    ...Object.values(NewsCategory)
-      .filter(cat => ![
-        NewsCategory.GTA, NewsCategory.VANCOUVER, NewsCategory.MONTREAL,
-        NewsCategory.CALGARY, NewsCategory.EDMONTON, NewsCategory.WATERLOO,
-        NewsCategory.GUELPH, NewsCategory.WINDSOR, NewsCategory.LONDON
-      ].includes(cat))
-      .map(cat => ({
+  const allCategories = React.useMemo(() => {
+    // Define explicit order
+    const orderedCategories = [
+      NewsCategory.LOCAL,
+      NewsCategory.CANADA,
+      NewsCategory.USA,
+      NewsCategory.INTERNATIONAL,
+      NewsCategory.FINANCE,
+      NewsCategory.CHINA
+    ];
+
+    return [
+      ...orderedCategories.map(cat => ({
         id: cat,
         label: cat === NewsCategory.LOCAL ? city : (staticCategoryLabels[cat] || cat),
         isLocal: cat === NewsCategory.LOCAL
       })),
-    ...customCategories.map(cat => ({
-      id: cat.id,
-      label: cat.name,
-      isLocal: false
-    }))
-  ], [city, customCategories]);
+      ...customCategories.map(cat => ({
+        id: cat.id,
+        label: cat.name,
+        isLocal: false
+      }))
+    ];
+  }, [city, customCategories]);
 
   // Overflow Detection
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
@@ -513,8 +518,8 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
                       }
                     }}
                     className={`p-3 rounded-xl text-sm font-bold transition-all border-2 text-left flex items-center ${city === cityOption.value
-                        ? 'border-brand-600 bg-brand-50 text-brand-700'
-                        : 'border-transparent bg-gray-50 text-gray-600 hover:bg-gray-100'
+                      ? 'border-brand-600 bg-brand-50 text-brand-700'
+                      : 'border-transparent bg-gray-50 text-gray-600 hover:bg-gray-100'
                       }`}
                   >
                     <MapPin size={14} className="mr-2 flex-shrink-0" />

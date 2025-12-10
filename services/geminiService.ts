@@ -479,6 +479,11 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
     articleCount = config.news.chinaArticleCount || 10;
     timeWindow = config.news.chinaTimeWindow || "24 hours";
     keywords = "Technology, AI, Internet, 5G, Electric Vehicles, Science, Startup, 科技, 互联网, 人工智能, 电动车, 科学, 数码, 创业, 硬科技, 芯片";
+  } else if (category === NewsCategory.FINANCE) {
+    topic = 'Global Finance & Economy';
+    articleCount = config.news.intlArticleCount || 10;
+    timeWindow = config.news.intlTimeWindow || "24 hours";
+    keywords = "Finance, Stock Market, Economy, Investment, Crypto, 财经, 股市, 经济, 投资, 美股, 港股, A股, 加密货币, 房产投资";
   } else if (category === NewsCategory.INTERNATIONAL) {
     // REFACTORED: International -> Global Chinese & East Asia
     topic = 'Global Chinese Community & East Asia';
@@ -509,6 +514,8 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
     [NewsCategory.CANADA]: "site:cbc.ca OR site:ctvnews.ca OR site:globalnews.ca OR site:canada.ca OR site:cp24.com OR site:singtao.ca OR site:mingpaocanada.com OR site:iask.ca OR site:ca.finance.yahoo.com",
 
     [NewsCategory.USA]: "site:cnn.com OR site:nytimes.com OR site:washingtonpost.com OR site:wsj.com OR site:reuters.com OR site:worldjournal.com OR site:dwnews.com OR site:voachinese.com OR site:finance.yahoo.com",
+
+    [NewsCategory.FINANCE]: "site:finance.yahoo.com OR site:ca.finance.yahoo.com OR site:cnbc.com OR site:bloomberg.com OR site:wsj.com OR site:ft.com OR site:sina.com.cn/finance OR site:finance.qq.com OR site:wallstreetcn.com OR site:cls.cn",
 
     // Mainland: 163.com; Taiwan: chinatimes, udn, ltn, cna; SG: nanyang, zaobao; JP: asahi, yahoo.co.jp; KR: chosun
     [NewsCategory.INTERNATIONAL]: "site:163.com OR site:chinatimes.com OR site:udn.com OR site:ltn.com.tw OR site:cna.com.tw OR site:nanyang.com OR site:zaobao.com.sg OR site:bbc.com/zhongwen OR site:rfi.fr/cn OR site:finance.yahoo.com",
