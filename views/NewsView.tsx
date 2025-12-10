@@ -262,6 +262,21 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
     } else {
       setExpandedNewsId(id);
     }
+
+    // Scroll to top with offset for sticky header
+    setTimeout(() => {
+      const element = document.getElementById(`card-${id}`);
+      if (element) {
+        const headerOffset = 120; // Header height + padding
+        const elementPosition = element.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: "smooth"
+        });
+      }
+    }, 100);
   };
 
   const handleManualCitySubmit = async () => {
@@ -313,16 +328,17 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
     newsData.forEach((item, index) => {
       // Render News Card (Unified Layout)
       mixedList.push(
-        <NewsCard
-          key={item.id}
-          item={item}
-          city={city}
-          staticCategoryLabels={staticCategoryLabels}
-          customCategories={customCategories}
-          expandedNewsId={expandedNewsId}
-          toggleExpand={toggleExpand}
-          onShare={handleShare}
-        />
+        <div id={`card-${item.id}`} key={item.id}>
+          <NewsCard
+            item={item}
+            city={city}
+            staticCategoryLabels={staticCategoryLabels}
+            customCategories={customCategories}
+            expandedNewsId={expandedNewsId}
+            toggleExpand={toggleExpand}
+            onShare={handleShare}
+          />
+        </div>
       );
 
       // Inject Ad every 4 items (starting after item 3)
