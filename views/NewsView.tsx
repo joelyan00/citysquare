@@ -35,7 +35,9 @@ const staticCategoryLabels: Partial<Record<NewsCategory, string>> = {
   [NewsCategory.USA]: '美国',
   [NewsCategory.INTERNATIONAL]: '东亚',
   [NewsCategory.FINANCE]: '财经',
-  [NewsCategory.CHINA]: '科技',
+  [NewsCategory.CHINA]: '中国',
+  [NewsCategory.TECH]: '科技',
+  [NewsCategory.EUROPE]: '欧洲',
 };
 
 // ...
@@ -141,9 +143,11 @@ const NewsView: React.FC<NewsViewProps> = ({ city, onCityUpdate, user, onNavigat
       NewsCategory.LOCAL,
       NewsCategory.CANADA,
       NewsCategory.USA,
+      NewsCategory.EUROPE,
       NewsCategory.INTERNATIONAL,
       NewsCategory.FINANCE,
-      NewsCategory.CHINA
+      NewsCategory.CHINA,
+      NewsCategory.TECH
     ];
 
     return [

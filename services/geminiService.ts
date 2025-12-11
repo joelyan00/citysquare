@@ -526,12 +526,27 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
     articleCount = config.news.intlArticleCount || 10;
     timeWindow = config.news.intlTimeWindow || "24 hours";
     keywords = "Finance, Stock Market, Economy, Investment, Wealth Management, Personal Finance, Crypto, 财经, 股市, 经济, 投资, 理财, 美股, 港股, A股, 加密货币, 房产投资";
+  } else if (category === NewsCategory.TECH) {
+    topic = 'Global Technology';
+    articleCount = config.news.intlArticleCount || 10;
+    timeWindow = config.news.intlTimeWindow || "24 hours";
+    keywords = "Technology, AI, Internet, 5G, Electric Vehicles, Science, Startup, 科技, 互联网, 人工智能, 电动车, 科学, 数码, 创业, 硬科技, 芯片";
   } else if (category === NewsCategory.INTERNATIONAL) {
     // REFACTORED: International -> Global Chinese & East Asia
     topic = 'Global Chinese Community & East Asia';
     articleCount = config.news.intlArticleCount || 8;
     timeWindow = config.news.intlTimeWindow || "24 hours";
     keywords = "Overseas Chinese, 华侨, 华人, Taiwan News, Hong Kong News, Japan News, South Korea News, International Relations, Geopolitics, Asia Pacific, 中日关系, 台海, 亚太局势";
+  } else if (category === NewsCategory.EUROPE) {
+    topic = 'Europe News';
+    articleCount = config.news.intlArticleCount || 8;
+    timeWindow = config.news.intlTimeWindow || "24 hours";
+    keywords = "Europe News, UK News, Germany News, France News, Russia Ukraine War, 欧洲新闻, 英国, 德国, 法国, 俄乌战争, 欧洲华人";
+  } else if (category === NewsCategory.USA) {
+    topic = 'USA News';
+    articleCount = config.news.usaArticleCount || 10;
+    timeWindow = config.news.usaTimeWindow || "24 hours";
+    keywords = "USA News, US Politics, US Economy, Chinese American, 美国新闻, 美国政治, 美国经济, 华人, 华尔街";
   } else {
     // Check Custom Categories
     const customCat = config.news.customCategories?.find(c => c.id === category);
@@ -542,12 +557,15 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
       // Overwrite keywords for custom categories to be specific
       if (customCat.keywords) keywords = customCat.keywords;
 
-      // Special handling for Europe custom category if it exists
+      // Special handling for Europe custom category if it exists (Legacy support)
       if (category === 'europe') {
         keywords = "Russia Ukraine War, 俄乌战争, 俄乌局势, Europe Chinese, 欧洲华人";
       }
     }
   }
+
+  // Unified Source List for USA, Europe, East Asia, Finance, Tech
+  const PREFERRED_CHINESE_SOURCES = "site:bbc.com/zhongwen OR site:163.com OR site:cn.nytimes.com OR site:dw.com/zh OR site:cn.nikkei.com OR site:tw.nextapple.com OR site:cn.chosun.com";
 
   // Authoritative Source Filters
   const SOURCE_FILTERS: Record<string, string> = {
@@ -555,17 +573,15 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
 
     [NewsCategory.CANADA]: "site:cbc.ca OR site:ctvnews.ca OR site:globalnews.ca OR site:canada.ca OR site:cp24.com OR site:singtao.ca OR site:mingpaocanada.com OR site:iask.ca OR site:info.51.ca OR site:ca.finance.yahoo.com",
 
-    // Removed NYT, WaPo, WSJ due to paywall (English), but added NYT Chinese as requested
-    [NewsCategory.USA]: "site:cnn.com OR site:reuters.com OR site:worldjournal.com OR site:dwnews.com OR site:voachinese.com OR site:finance.yahoo.com OR site:npr.org OR site:usatoday.com OR site:foxnews.com OR site:cn.nytimes.com",
+    // Updated to use PREFERRED_CHINESE_SOURCES
+    [NewsCategory.USA]: PREFERRED_CHINESE_SOURCES,
+    [NewsCategory.FINANCE]: PREFERRED_CHINESE_SOURCES,
+    [NewsCategory.TECH]: PREFERRED_CHINESE_SOURCES,
+    [NewsCategory.INTERNATIONAL]: PREFERRED_CHINESE_SOURCES,
+    [NewsCategory.EUROPE]: PREFERRED_CHINESE_SOURCES,
 
-    // Removed WSJ, FT, Bloomberg due to paywall
-    [NewsCategory.FINANCE]: "site:finance.yahoo.com OR site:ca.finance.yahoo.com OR site:cnbc.com OR site:sina.com.cn/finance OR site:finance.qq.com OR site:wallstreetcn.com OR site:cls.cn",
-
-    // Mainland: 163.com; Taiwan: chinatimes, udn, ltn, cna; SG: nanyang, zaobao; JP: asahi, yahoo.co.jp; KR: chosun
-    [NewsCategory.INTERNATIONAL]: "site:163.com OR site:chinatimes.com OR site:udn.com OR site:ltn.com.tw OR site:cna.com.tw OR site:nanyang.com OR site:zaobao.com.sg OR site:tw.nextapple.com OR site:bbc.com/zhongwen OR site:rfi.fr/cn OR site:finance.yahoo.com OR site:cn.nytimes.com OR site:dw.com/zh",
-
-    // Europe Custom Category
-    "europe": "site:bbc.com OR site:dw.com/zh OR site:france24.com OR site:euronews.com OR site:politico.eu OR site:theguardian.com OR site:reuters.com OR site:rfi.fr/cn OR site:bbc.com/zhongwen",
+    // Legacy Europe custom category support
+    "europe": PREFERRED_CHINESE_SOURCES,
 
     // Local News Filters - Removed The Star, Sun, and Postmedia sites (paywalled/metered)
     [NewsCategory.GTA]: "site:cp24.com OR site:toronto.ca OR site:mississauga.ca OR site:brampton.ca OR site:markham.ca OR site:richmondhill.ca OR site:vaughan.ca OR site:ontario.ca OR site:news.ontario.ca OR site:cbc.ca/news/canada/toronto OR site:singtao.ca OR site:mingpaocanada.com OR site:info.51.ca OR site:ca.finance.yahoo.com",
@@ -613,7 +629,9 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
 
       const p1 = GoogleSearchService.search(`News site:163.com ${formattedKeywords}`, timeWindow, 40);
       const p2 = GoogleSearchService.search(`News site:zaobao.com.sg ${formattedKeywords}`, timeWindow, 20);
-      const p3 = GoogleSearchService.search(`News (site:chinatimes.com OR site:udn.com OR site:ltn.com.tw OR site:cna.com.tw OR site:tw.nextapple.com OR site:hk01.com OR site:stheadline.com OR site:macaodaily.com OR site:chinese.kyodonews.net OR site:nhk.or.jp OR site:cn.yna.co.kr OR site:chinese.joins.com OR site:udnbkk.com OR site:bbc.com/zhongwen OR site:cn.nytimes.com OR site:dw.com/zh) ${formattedKeywords}`, timeWindow, 40);
+      // Update p3 to use PREFERRED_CHINESE_SOURCES (excluding 163 which is p1)
+      const otherSources = PREFERRED_CHINESE_SOURCES.replace("site:163.com OR ", "").replace(" OR site:163.com", "");
+      const p3 = GoogleSearchService.search(`News (${otherSources}) ${formattedKeywords}`, timeWindow, 40);
 
       const [r1, r2, r3] = await Promise.all([p1, p2, p3]);
 

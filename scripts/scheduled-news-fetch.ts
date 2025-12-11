@@ -54,7 +54,9 @@ async function main() {
         NewsCategory.USA,
         NewsCategory.CHINA,
         NewsCategory.INTERNATIONAL,
-        NewsCategory.FINANCE
+        NewsCategory.FINANCE,
+        NewsCategory.TECH,
+        NewsCategory.EUROPE
     ];
 
     for (const category of otherCategories) {
