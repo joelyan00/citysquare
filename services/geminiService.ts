@@ -562,13 +562,30 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
       topicSuffix = newsSuffix;
     }
 
-    const searchQuery = sourceFilter
-      ? `${topic} ${topicSuffix} (${sourceFilter}) ${formattedKeywords}`
-      : `${topic} ${topicSuffix} ${formattedKeywords}`;
+    let searchResults: any[] = [];
 
-    // 1. Search Google
-    console.log(`[GoogleSearch] Query: ${topic} news (${searchQuery})`);
-    const searchResults = await GoogleSearchService.search(searchQuery, timeWindow, 50);
+    // Special Handling for INTERNATIONAL (East Asia) to ensure diverse sources
+    if (category === NewsCategory.INTERNATIONAL) {
+      console.log(`[GoogleSearch] Running Parallel Search for East Asia (NetEase, Zaobao, Others)`);
+
+      const p1 = GoogleSearchService.search(`${topic} ${newsSuffix} site:163.com ${formattedKeywords}`, timeWindow, 20);
+      const p2 = GoogleSearchService.search(`${topic} ${newsSuffix} site:zaobao.com.sg ${formattedKeywords}`, timeWindow, 10);
+      const p3 = GoogleSearchService.search(`${topic} ${newsSuffix} (site:chinatimes.com OR site:udn.com OR site:ltn.com.tw OR site:cna.com.tw OR site:tw.nextapple.com OR site:bbc.com/zhongwen OR site:rfi.fr/cn OR site:finance.yahoo.com) ${formattedKeywords}`, timeWindow, 20);
+
+      const [r1, r2, r3] = await Promise.all([p1, p2, p3]);
+
+      // Interleave results to ensure mix if possible, or just concat
+      searchResults = [...(r1 || []), ...(r2 || []), ...(r3 || [])];
+      console.log(`[GoogleSearch] Merged Results: ${searchResults.length} items (NetEase: ${r1?.length}, Zaobao: ${r2?.length}, Others: ${r3?.length})`);
+    } else {
+      // Standard Search for other categories
+      const searchQuery = sourceFilter
+        ? `${topic} ${topicSuffix} (${sourceFilter}) ${formattedKeywords}`
+        : `${topic} ${topicSuffix} ${formattedKeywords}`;
+
+      console.log(`[GoogleSearch] Query: ${topic} news (${searchQuery})`);
+      searchResults = await GoogleSearchService.search(searchQuery, timeWindow, 50);
+    }
 
     if (!searchResults || searchResults.length === 0) {
       console.warn("[GoogleSearch] No results found. Check API Key/CX or Query.");
