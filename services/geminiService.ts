@@ -569,9 +569,9 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
     if (category === NewsCategory.INTERNATIONAL) {
       console.log(`[GoogleSearch] Running Parallel Search for East Asia (NetEase, Zaobao, Others)`);
 
-      const p1 = GoogleSearchService.search(`${topic} ${newsSuffix} site:163.com ${formattedKeywords}`, timeWindow, 20);
-      const p2 = GoogleSearchService.search(`${topic} ${newsSuffix} site:zaobao.com.sg ${formattedKeywords}`, timeWindow, 10);
-      const p3 = GoogleSearchService.search(`${topic} ${newsSuffix} (site:chinatimes.com OR site:udn.com OR site:ltn.com.tw OR site:cna.com.tw OR site:tw.nextapple.com OR site:hk01.com OR site:stheadline.com OR site:macaodaily.com OR site:chinese.kyodonews.net OR site:nhk.or.jp OR site:cn.yna.co.kr OR site:chinese.joins.com OR site:udnbkk.com OR site:bbc.com/zhongwen OR site:cn.nytimes.com OR site:dw.com/zh) ${formattedKeywords}`, timeWindow, 20);
+      const p1 = GoogleSearchService.search(`${topic} ${newsSuffix} site:163.com ${formattedKeywords}`, timeWindow, 40);
+      const p2 = GoogleSearchService.search(`${topic} ${newsSuffix} site:zaobao.com.sg ${formattedKeywords}`, timeWindow, 20);
+      const p3 = GoogleSearchService.search(`${topic} ${newsSuffix} (site:chinatimes.com OR site:udn.com OR site:ltn.com.tw OR site:cna.com.tw OR site:tw.nextapple.com OR site:hk01.com OR site:stheadline.com OR site:macaodaily.com OR site:chinese.kyodonews.net OR site:nhk.or.jp OR site:cn.yna.co.kr OR site:chinese.joins.com OR site:udnbkk.com OR site:bbc.com/zhongwen OR site:cn.nytimes.com OR site:dw.com/zh) ${formattedKeywords}`, timeWindow, 40);
 
       const [r1, r2, r3] = await Promise.all([p1, p2, p3]);
 
