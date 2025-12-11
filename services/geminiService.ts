@@ -513,9 +513,11 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
 
     [NewsCategory.CANADA]: "site:cbc.ca OR site:ctvnews.ca OR site:globalnews.ca OR site:canada.ca OR site:cp24.com OR site:singtao.ca OR site:mingpaocanada.com OR site:iask.ca OR site:ca.finance.yahoo.com",
 
-    [NewsCategory.USA]: "site:cnn.com OR site:nytimes.com OR site:washingtonpost.com OR site:wsj.com OR site:reuters.com OR site:worldjournal.com OR site:dwnews.com OR site:voachinese.com OR site:finance.yahoo.com",
+    // Removed NYT, WaPo, WSJ due to paywall
+    [NewsCategory.USA]: "site:cnn.com OR site:reuters.com OR site:worldjournal.com OR site:dwnews.com OR site:voachinese.com OR site:finance.yahoo.com OR site:npr.org OR site:usatoday.com OR site:foxnews.com",
 
-    [NewsCategory.FINANCE]: "site:finance.yahoo.com OR site:ca.finance.yahoo.com OR site:cnbc.com OR site:bloomberg.com OR site:wsj.com OR site:ft.com OR site:sina.com.cn/finance OR site:finance.qq.com OR site:wallstreetcn.com OR site:cls.cn",
+    // Removed WSJ, FT, Bloomberg due to paywall
+    [NewsCategory.FINANCE]: "site:finance.yahoo.com OR site:ca.finance.yahoo.com OR site:cnbc.com OR site:sina.com.cn/finance OR site:finance.qq.com OR site:wallstreetcn.com OR site:cls.cn",
 
     // Mainland: 163.com; Taiwan: chinatimes, udn, ltn, cna; SG: nanyang, zaobao; JP: asahi, yahoo.co.jp; KR: chosun
     [NewsCategory.INTERNATIONAL]: "site:163.com OR site:chinatimes.com OR site:udn.com OR site:ltn.com.tw OR site:cna.com.tw OR site:nanyang.com OR site:zaobao.com.sg OR site:tw.nextapple.com OR site:bbc.com/zhongwen OR site:rfi.fr/cn OR site:finance.yahoo.com",
@@ -523,16 +525,15 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
     // Europe Custom Category
     "europe": "site:bbc.com OR site:dw.com OR site:france24.com OR site:euronews.com OR site:politico.eu OR site:theguardian.com OR site:reuters.com OR site:rfi.fr/cn OR site:bbc.com/zhongwen",
 
-    // Local News Filters
-    // Local News Filters
-    [NewsCategory.GTA]: "site:thestar.com OR site:cp24.com OR site:toronto.ca OR site:mississauga.ca OR site:brampton.ca OR site:markham.ca OR site:richmondhill.ca OR site:vaughan.ca OR site:ontario.ca OR site:news.ontario.ca OR site:cbc.ca/news/canada/toronto OR site:torontosun.com OR site:singtao.ca OR site:mingpaocanada.com OR site:ca.finance.yahoo.com",
-    [NewsCategory.VANCOUVER]: "site:vancouversun.com OR site:vancouver.ca OR site:richmond.ca OR site:burnaby.ca OR site:surrey.ca OR site:coquitlam.ca OR site:gov.bc.ca OR site:news.gov.bc.ca OR site:cbc.ca/news/canada/british-columbia OR site:theprovince.com OR site:ctvnews.ca/vancouver OR site:singtao.ca OR site:mingpaocanada.com OR site:ca.finance.yahoo.com",
-    [NewsCategory.MONTREAL]: "site:montrealgazette.com OR site:montreal.ca OR site:quebec.ca OR site:cbc.ca/news/canada/montreal OR site:ctvnews.ca/montreal OR site:sinoquebec.com OR site:ca.finance.yahoo.com",
-    [NewsCategory.CALGARY]: "site:calgaryherald.com OR site:calgary.ca OR site:alberta.ca OR site:cbc.ca/news/canada/calgary OR site:ctvnews.ca/calgary OR site:ca.finance.yahoo.com",
-    [NewsCategory.EDMONTON]: "site:edmontonjournal.com OR site:edmonton.ca OR site:alberta.ca OR site:cbc.ca/news/canada/edmonton OR site:ctvnews.ca/edmonton OR site:ca.finance.yahoo.com",
-    [NewsCategory.WATERLOO]: "site:therecord.com OR site:regionofwaterloo.ca OR site:kitchener.ca OR site:waterloo.ca OR site:cambridge.ca OR site:guelph.ca OR site:ontario.ca OR site:news.ontario.ca OR site:cbc.ca/news/canada/kitchener-waterloo OR site:guelphtoday.com OR site:guelphmercury.com OR site:ca.finance.yahoo.com",
-    [NewsCategory.WINDSOR]: "site:windsorstar.com OR site:citywindsor.ca OR site:ontario.ca OR site:news.ontario.ca OR site:cbc.ca/news/canada/windsor OR site:ctvnews.ca/windsor OR site:ca.finance.yahoo.com",
-    [NewsCategory.LONDON]: "site:lfpress.com OR site:london.ca OR site:ontario.ca OR site:news.ontario.ca OR site:cbc.ca/news/canada/london OR site:ctvnews.ca/london OR site:ca.finance.yahoo.com"
+    // Local News Filters - Removed The Star, Sun, and Postmedia sites (paywalled/metered)
+    [NewsCategory.GTA]: "site:cp24.com OR site:toronto.ca OR site:mississauga.ca OR site:brampton.ca OR site:markham.ca OR site:richmondhill.ca OR site:vaughan.ca OR site:ontario.ca OR site:news.ontario.ca OR site:cbc.ca/news/canada/toronto OR site:singtao.ca OR site:mingpaocanada.com OR site:ca.finance.yahoo.com",
+    [NewsCategory.VANCOUVER]: "site:vancouver.ca OR site:richmond.ca OR site:burnaby.ca OR site:surrey.ca OR site:coquitlam.ca OR site:gov.bc.ca OR site:news.gov.bc.ca OR site:cbc.ca/news/canada/british-columbia OR site:ctvnews.ca/vancouver OR site:singtao.ca OR site:mingpaocanada.com OR site:ca.finance.yahoo.com",
+    [NewsCategory.MONTREAL]: "site:montreal.ca OR site:quebec.ca OR site:cbc.ca/news/canada/montreal OR site:ctvnews.ca/montreal OR site:sinoquebec.com OR site:ca.finance.yahoo.com",
+    [NewsCategory.CALGARY]: "site:calgary.ca OR site:alberta.ca OR site:cbc.ca/news/canada/calgary OR site:ctvnews.ca/calgary OR site:ca.finance.yahoo.com",
+    [NewsCategory.EDMONTON]: "site:edmonton.ca OR site:alberta.ca OR site:cbc.ca/news/canada/edmonton OR site:ctvnews.ca/edmonton OR site:ca.finance.yahoo.com",
+    [NewsCategory.WATERLOO]: "site:regionofwaterloo.ca OR site:kitchener.ca OR site:waterloo.ca OR site:cambridge.ca OR site:guelph.ca OR site:ontario.ca OR site:news.ontario.ca OR site:cbc.ca/news/canada/kitchener-waterloo OR site:guelphtoday.com OR site:guelphmercury.com OR site:ca.finance.yahoo.com",
+    [NewsCategory.WINDSOR]: "site:citywindsor.ca OR site:ontario.ca OR site:news.ontario.ca OR site:cbc.ca/news/canada/windsor OR site:ctvnews.ca/windsor OR site:ca.finance.yahoo.com",
+    [NewsCategory.LONDON]: "site:london.ca OR site:ontario.ca OR site:news.ontario.ca OR site:cbc.ca/news/canada/london OR site:ctvnews.ca/london OR site:ca.finance.yahoo.com"
   };
 
   // Append source filter if available
@@ -840,9 +841,12 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
               lowerContent.includes('earn a commission') ||
               lowerContent.includes('affiliate commission') ||
               lowerContent.includes('shopping link') ||
-              lowerContent.includes('buy through our links')
+              lowerContent.includes('buy through our links') ||
+              lowerContent.includes('subscribe to read') ||
+              lowerContent.includes('log in to access') ||
+              lowerContent.includes('register to continue')
             ) {
-              console.log(`[GeminiService] Skipping affiliate/shopping content: ${item.title}`);
+              console.log(`[GeminiService] Skipping affiliate/paywalled content: ${item.title}`);
               return null;
             }
             contextText = fullContent.slice(0, 8000); // Increased context window
