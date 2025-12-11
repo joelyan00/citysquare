@@ -513,17 +513,17 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
 
     [NewsCategory.CANADA]: "site:cbc.ca OR site:ctvnews.ca OR site:globalnews.ca OR site:canada.ca OR site:cp24.com OR site:singtao.ca OR site:mingpaocanada.com OR site:iask.ca OR site:ca.finance.yahoo.com",
 
-    // Removed NYT, WaPo, WSJ due to paywall
-    [NewsCategory.USA]: "site:cnn.com OR site:reuters.com OR site:worldjournal.com OR site:dwnews.com OR site:voachinese.com OR site:finance.yahoo.com OR site:npr.org OR site:usatoday.com OR site:foxnews.com",
+    // Removed NYT, WaPo, WSJ due to paywall (English), but added NYT Chinese as requested
+    [NewsCategory.USA]: "site:cnn.com OR site:reuters.com OR site:worldjournal.com OR site:dwnews.com OR site:voachinese.com OR site:finance.yahoo.com OR site:npr.org OR site:usatoday.com OR site:foxnews.com OR site:cn.nytimes.com",
 
     // Removed WSJ, FT, Bloomberg due to paywall
     [NewsCategory.FINANCE]: "site:finance.yahoo.com OR site:ca.finance.yahoo.com OR site:cnbc.com OR site:sina.com.cn/finance OR site:finance.qq.com OR site:wallstreetcn.com OR site:cls.cn",
 
     // Mainland: 163.com; Taiwan: chinatimes, udn, ltn, cna; SG: nanyang, zaobao; JP: asahi, yahoo.co.jp; KR: chosun
-    [NewsCategory.INTERNATIONAL]: "site:163.com OR site:chinatimes.com OR site:udn.com OR site:ltn.com.tw OR site:cna.com.tw OR site:nanyang.com OR site:zaobao.com.sg OR site:tw.nextapple.com OR site:bbc.com/zhongwen OR site:rfi.fr/cn OR site:finance.yahoo.com",
+    [NewsCategory.INTERNATIONAL]: "site:163.com OR site:chinatimes.com OR site:udn.com OR site:ltn.com.tw OR site:cna.com.tw OR site:nanyang.com OR site:zaobao.com.sg OR site:tw.nextapple.com OR site:bbc.com/zhongwen OR site:rfi.fr/cn OR site:finance.yahoo.com OR site:cn.nytimes.com OR site:dw.com/zh",
 
     // Europe Custom Category
-    "europe": "site:bbc.com OR site:dw.com OR site:france24.com OR site:euronews.com OR site:politico.eu OR site:theguardian.com OR site:reuters.com OR site:rfi.fr/cn OR site:bbc.com/zhongwen",
+    "europe": "site:bbc.com OR site:dw.com/zh OR site:france24.com OR site:euronews.com OR site:politico.eu OR site:theguardian.com OR site:reuters.com OR site:rfi.fr/cn OR site:bbc.com/zhongwen",
 
     // Local News Filters - Removed The Star, Sun, and Postmedia sites (paywalled/metered)
     [NewsCategory.GTA]: "site:cp24.com OR site:toronto.ca OR site:mississauga.ca OR site:brampton.ca OR site:markham.ca OR site:richmondhill.ca OR site:vaughan.ca OR site:ontario.ca OR site:news.ontario.ca OR site:cbc.ca/news/canada/toronto OR site:singtao.ca OR site:mingpaocanada.com OR site:ca.finance.yahoo.com",
@@ -571,7 +571,7 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
 
       const p1 = GoogleSearchService.search(`${topic} ${newsSuffix} site:163.com ${formattedKeywords}`, timeWindow, 20);
       const p2 = GoogleSearchService.search(`${topic} ${newsSuffix} site:zaobao.com.sg ${formattedKeywords}`, timeWindow, 10);
-      const p3 = GoogleSearchService.search(`${topic} ${newsSuffix} (site:chinatimes.com OR site:udn.com OR site:ltn.com.tw OR site:cna.com.tw OR site:tw.nextapple.com OR site:bbc.com/zhongwen OR site:rfi.fr/cn OR site:finance.yahoo.com) ${formattedKeywords}`, timeWindow, 20);
+      const p3 = GoogleSearchService.search(`${topic} ${newsSuffix} (site:chinatimes.com OR site:udn.com OR site:ltn.com.tw OR site:cna.com.tw OR site:tw.nextapple.com OR site:bbc.com/zhongwen OR site:rfi.fr/cn OR site:finance.yahoo.com OR site:cn.nytimes.com OR site:dw.com/zh) ${formattedKeywords}`, timeWindow, 20);
 
       const [r1, r2, r3] = await Promise.all([p1, p2, p3]);
 
