@@ -615,7 +615,12 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
         titleLower.includes('collaboration') ||
         titleLower.includes('partner with') ||
         titleLower.includes('announces') ||
+        titleLower.includes('announces') ||
         titleLower.includes('press release') ||
+        titleLower.includes('business wire') ||
+        titleLower.includes('pr newswire') ||
+        titleLower.includes('globenewswire') ||
+        titleLower.includes('kraneshares') ||
         titleLower.includes('about us') ||
         titleLower.includes('contact us') ||
         titleLower.includes('subscribe') ||
