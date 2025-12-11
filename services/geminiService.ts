@@ -336,7 +336,7 @@ const isDeepLink = (url: string): boolean => {
     // Reject root paths
     if (u.pathname === '/' || u.pathname === '') return false;
     // Reject common top-level paths
-    const badPaths = ['/news', '/home', '/index', '/en', '/zh', '/category', '/articles', '/sounds', '/programmes', '/player', '/video', '/audio', '/watch', '/listen'];
+    const badPaths = ['/news', '/home', '/index', '/en', '/zh', '/category', '/articles', '/sounds', '/programmes', '/player', '/video', '/audio', '/watch', '/listen', '/user', '/author', '/column', '/topics'];
     if (badPaths.some(p => u.pathname.startsWith(p) || u.pathname.includes(p))) return false;
     // Deep links usually have longer paths or query parameters
     return u.pathname.length > 10 || u.search.length > 5;
@@ -630,6 +630,7 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
         titleLower.includes('tag') ||
         titleLower.includes('category') ||
         titleLower.includes('collection') ||
+        titleLower.includes('发布过的内容') ||
         // Specific case from user feedback
         titleLower.includes('focusing on') ||
         // Digest / Index Pages (Fix for "List of Headlines" issue)
