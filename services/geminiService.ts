@@ -374,7 +374,9 @@ const fetchArticleContent = async (url: string): Promise<{ text: string, videoUr
     $('script, style, nav, header, footer, .ad, .advertisement, .menu, .sidebar, .cookie-banner, .popup').remove();
 
     // Try to find main article container
-    let container = $('article');
+    let container = $('.post_body');
+    if (container.length === 0) container = $('#endText');
+    if (container.length === 0) container = $('article');
     if (container.length === 0) container = $('main');
     if (container.length === 0) container = $('.post-content');
     if (container.length === 0) container = $('.article-body');
