@@ -127,7 +127,7 @@ const CITY_CATEGORY_MAP: Record<string, NewsCategory> = {
   'London': NewsCategory.LONDON,
   '伦敦': NewsCategory.LONDON
 };
-const cleanJsonString = (str: string) => {
+export const cleanJsonString = (str: string): string => {
   if (!str) return "[]";
   let cleaned = str.replace(/^```json\s*/g, '').replace(/^```\s*/g, '').replace(/```$/g, '').trim();
   const firstBracket = cleaned.indexOf('[');
@@ -163,7 +163,7 @@ const base64ToBlob = (base64Data: string): Blob => {
 };
 
 // Retry Helper
-const generateWithRetry = async (model: string, params: any, retries = 3) => {
+export const generateWithRetry = async (model: string, params: any, retries = 3): Promise<any> => {
   let lastError;
   for (let i = 0; i < retries; i++) {
     try {
@@ -346,7 +346,7 @@ const isDeepLink = (url: string): boolean => {
 };
 
 // Helper: Fetch Article Content & Video
-const fetchArticleContent = async (url: string): Promise<{ text: string, videoUrl?: string } | null> => {
+export const fetchArticleContent = async (url: string): Promise<{ text: string, videoUrl?: string } | null> => {
   if (typeof window !== 'undefined') return null; // Only run in Node
 
   try {
@@ -517,10 +517,10 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
     keywords = "Chinese American, 华人, 美国华人, Chinese Community, H-1B, Visa, Chinatown";
     if (config.news.usaKeywords) keywords += `, ${config.news.usaKeywords}`;
   } else if (category === NewsCategory.CHINA) {
-    topic = 'Technology & Science';
-    articleCount = config.news.chinaArticleCount || 10;
+    topic = 'China News';
+    articleCount = config.news.chinaArticleCount || 15;
     timeWindow = config.news.chinaTimeWindow || "24 hours";
-    keywords = "Technology, AI, Internet, 5G, Electric Vehicles, Science, Startup, 科技, 互联网, 人工智能, 电动车, 科学, 数码, 创业, 硬科技, 芯片";
+    keywords = "Politics, Economy, Society, International Relations, Technology, Culture, 政治, 经济, 社会, 民生, 外交, 科技";
   } else if (category === NewsCategory.FINANCE) {
     topic = 'Global Finance & Economy';
     articleCount = config.news.intlArticleCount || 10;
@@ -551,7 +551,7 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
 
   // Authoritative Source Filters
   const SOURCE_FILTERS: Record<string, string> = {
-    [NewsCategory.CHINA]: "site:36kr.com OR site:huxiu.com OR site:cnbeta.com.tw OR site:ithome.com OR site:sina.com.cn/tech OR site:tech.qq.com OR site:tech.163.com OR site:jiemian.com OR site:thepaper.cn",
+    [NewsCategory.CHINA]: "site:163.com OR site:sina.com.cn OR site:qq.com OR site:ifeng.com OR site:thepaper.cn OR site:jiemian.com OR site:36kr.com OR site:huxiu.com",
 
     [NewsCategory.CANADA]: "site:cbc.ca OR site:ctvnews.ca OR site:globalnews.ca OR site:canada.ca OR site:cp24.com OR site:singtao.ca OR site:mingpaocanada.com OR site:iask.ca OR site:info.51.ca OR site:ca.finance.yahoo.com",
 
@@ -611,15 +611,29 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
     if (category === NewsCategory.INTERNATIONAL) {
       console.log(`[GoogleSearch] Running Parallel Search for East Asia (NetEase, Zaobao, Others)`);
 
-      const p1 = GoogleSearchService.search(`${topic} ${newsSuffix} site:163.com ${formattedKeywords}`, timeWindow, 40);
-      const p2 = GoogleSearchService.search(`${topic} ${newsSuffix} site:zaobao.com.sg ${formattedKeywords}`, timeWindow, 20);
-      const p3 = GoogleSearchService.search(`${topic} ${newsSuffix} (site:chinatimes.com OR site:udn.com OR site:ltn.com.tw OR site:cna.com.tw OR site:tw.nextapple.com OR site:hk01.com OR site:stheadline.com OR site:macaodaily.com OR site:chinese.kyodonews.net OR site:nhk.or.jp OR site:cn.yna.co.kr OR site:chinese.joins.com OR site:udnbkk.com OR site:bbc.com/zhongwen OR site:cn.nytimes.com OR site:dw.com/zh) ${formattedKeywords}`, timeWindow, 40);
+      const p1 = GoogleSearchService.search(`News site:163.com ${formattedKeywords}`, timeWindow, 40);
+      const p2 = GoogleSearchService.search(`News site:zaobao.com.sg ${formattedKeywords}`, timeWindow, 20);
+      const p3 = GoogleSearchService.search(`News (site:chinatimes.com OR site:udn.com OR site:ltn.com.tw OR site:cna.com.tw OR site:tw.nextapple.com OR site:hk01.com OR site:stheadline.com OR site:macaodaily.com OR site:chinese.kyodonews.net OR site:nhk.or.jp OR site:cn.yna.co.kr OR site:chinese.joins.com OR site:udnbkk.com OR site:bbc.com/zhongwen OR site:cn.nytimes.com OR site:dw.com/zh) ${formattedKeywords}`, timeWindow, 40);
 
       const [r1, r2, r3] = await Promise.all([p1, p2, p3]);
 
       // Interleave results to ensure mix if possible, or just concat
       searchResults = [...(r1 || []), ...(r2 || []), ...(r3 || [])];
       console.log(`[GoogleSearch] Merged Results: ${searchResults.length} items (NetEase: ${r1?.length}, Zaobao: ${r2?.length}, Others: ${r3?.length})`);
+    } else if (category === NewsCategory.CHINA) {
+      // Special Handling for CHINA to prioritize NetEase
+      console.log(`[GoogleSearch] Running Parallel Search for China (NetEase + Others)`);
+
+      // 1. NetEase (163.com) - High Priority
+      const p1 = GoogleSearchService.search(`News site:163.com ${formattedKeywords}`, timeWindow, 40);
+
+      // 2. Other Major Sources (Sina, QQ, Ifeng, ThePaper, etc.)
+      const otherSources = "site:sina.com.cn OR site:qq.com OR site:ifeng.com OR site:thepaper.cn OR site:jiemian.com OR site:36kr.com";
+      const p2 = GoogleSearchService.search(`News (${otherSources}) ${formattedKeywords}`, timeWindow, 40);
+
+      const [r1, r2] = await Promise.all([p1, p2]);
+      searchResults = [...(r1 || []), ...(r2 || [])];
+      console.log(`[GoogleSearch] Merged China Results: ${searchResults.length} items (NetEase: ${r1?.length}, Others: ${r2?.length})`);
     } else {
       // Standard Search for other categories
       const searchQuery = sourceFilter
