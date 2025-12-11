@@ -531,7 +531,7 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
     topic = 'Global Chinese Community & East Asia';
     articleCount = config.news.intlArticleCount || 8;
     timeWindow = config.news.intlTimeWindow || "24 hours";
-    keywords = "Overseas Chinese, 华侨, 华人, Taiwan News, Hong Kong News, Japan News, South Korea News";
+    keywords = "Overseas Chinese, 华侨, 华人, Taiwan News, Hong Kong News, Japan News, South Korea News, International Relations, Geopolitics, Asia Pacific, 中日关系, 台海, 亚太局势";
   } else {
     // Check Custom Categories
     const customCat = config.news.customCategories?.find(c => c.id === category);
