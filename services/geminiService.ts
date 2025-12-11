@@ -967,6 +967,31 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
   }
 };
 
+// Helper: Calculate Jaccard Similarity for fuzzy title matching
+const calculateSimilarity = (str1: string, str2: string): number => {
+  if (!str1 || !str2) return 0;
+  const s1 = str1.toLowerCase().replace(/\s+/g, '');
+  const s2 = str2.toLowerCase().replace(/\s+/g, '');
+  if (s1 === s2) return 1;
+
+  const getBigrams = (str: string) => {
+    const bigrams = new Set<string>();
+    for (let i = 0; i < str.length - 1; i++) {
+      bigrams.add(str.slice(i, i + 2));
+    }
+    return bigrams;
+  };
+
+  const bg1 = getBigrams(s1);
+  const bg2 = getBigrams(s2);
+
+  const intersection = new Set([...bg1].filter(x => bg2.has(x)));
+  const union = new Set([...bg1, ...bg2]);
+
+  if (union.size === 0) return 0;
+  return intersection.size / union.size;
+};
+
 export const NewsDatabase = {
   getNewsContent: async (id: string): Promise<string | null> => {
     if (!supabaseUrl) return null;
@@ -1038,6 +1063,8 @@ export const NewsDatabase = {
     return (data || []).map(fromDbSchema);
   },
 
+
+
   save: async (newItems: NewsItem[]) => {
     if (!supabaseUrl || newItems.length === 0) return;
 
@@ -1050,14 +1077,20 @@ export const NewsDatabase = {
       .order('timestamp', { ascending: false })
       .limit(100);
 
-    const existingTitles = new Set((existingPosts || []).map(p => p.title));
+    const existingTitles = (existingPosts || []).map(p => p.title);
 
-    // 2. Filter out duplicates (Exact Title or URL Match)
+    // 2. Filter out duplicates (Fuzzy Title Match)
     const uniqueItems = newItems.filter(item => {
-      const titleExists = existingTitles.has(item.title);
-      // We rely on the pre-check in fetchNewsFromAI for URL, but double check here if needed?
-      // Let's trust the pre-check for URL to avoid extra DB calls, but title check is good for same content different URL.
-      return !titleExists;
+      // Check against all existing titles
+      const isDuplicate = existingTitles.some(existingTitle => {
+        const similarity = calculateSimilarity(item.title, existingTitle);
+        if (similarity > 0.6) { // 60% similarity threshold
+          console.log(`[Deduplication] Skipping duplicate: "${item.title}" (Similar to: "${existingTitle}", Score: ${similarity.toFixed(2)})`);
+          return true;
+        }
+        return false;
+      });
+      return !isDuplicate;
     });
 
     if (uniqueItems.length === 0) {
