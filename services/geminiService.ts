@@ -345,8 +345,8 @@ const isDeepLink = (url: string): boolean => {
   }
 };
 
-// Helper: Fetch Article Content (Node.js only)
-const fetchArticleContent = async (url: string): Promise<string | null> => {
+// Helper: Fetch Article Content & Video
+const fetchArticleContent = async (url: string): Promise<{ text: string, videoUrl?: string } | null> => {
   if (typeof window !== 'undefined') return null; // Only run in Node
 
   try {
@@ -401,7 +401,47 @@ const fetchArticleContent = async (url: string): Promise<string | null> => {
       }
     });
 
-    return text.trim();
+    // Extract Video URL (YouTube or MP4)
+    let videoUrl: string | undefined;
+
+    // 1. Check for YouTube iframes
+    $('iframe').each((i, el) => {
+      const src = $(el).attr('src');
+      if (src && (src.includes('youtube.com') || src.includes('youtu.be'))) {
+        videoUrl = src;
+        return false; // Break loop
+      }
+    });
+
+    // 2. Check for Video tags (MP4)
+    if (!videoUrl) {
+      $('video').each((i, el) => {
+        const src = $(el).attr('src');
+        if (src && src.endsWith('.mp4')) {
+          videoUrl = src;
+          return false;
+        }
+        // Check source tags
+        $(el).find('source').each((j, source) => {
+          const sourceSrc = $(source).attr('src');
+          if (sourceSrc && sourceSrc.endsWith('.mp4')) {
+            videoUrl = sourceSrc;
+            return false;
+          }
+        });
+        if (videoUrl) return false;
+      });
+    }
+
+    // 3. Check Meta tags
+    if (!videoUrl) {
+      const metaVideo = $('meta[property="og:video"]').attr('content') ||
+        $('meta[property="og:video:url"]').attr('content') ||
+        $('meta[property="twitter:player"]').attr('content');
+      if (metaVideo) videoUrl = metaVideo;
+    }
+
+    return { text: text.trim(), videoUrl };
   } catch (e) {
     console.error(`Error fetching content from ${url}:`, e);
     return null;
@@ -833,75 +873,80 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
     const isNode = typeof window === 'undefined';
 
     const articlesContextPromises = limitedResults.map(async (item, index) => {
-      let contextText = '';
-
       // Try to get full content if in Node
       if (isNode) {
-        try {
-          const fullContent = await fetchArticleContent(item.link);
-          if (fullContent && fullContent.length > 300) { // Increased threshold to ensure substance
-            // Content Filter: Check for affiliate/shopping disclaimers
-            const lowerContent = fullContent.toLowerCase();
-            if (
-              lowerContent.includes('earn a commission') ||
-              lowerContent.includes('affiliate commission') ||
-              lowerContent.includes('shopping link') ||
-              lowerContent.includes('buy through our links') ||
-              lowerContent.includes('subscribe to read') ||
-              lowerContent.includes('log in to access') ||
-              lowerContent.includes('register to continue')
-            ) {
-              console.log(`[GeminiService] Skipping affiliate/paywalled content: ${item.title}`);
-              return null;
-            }
-            contextText = fullContent.slice(0, 8000); // Increased context window
-          } else {
-            console.log(`[GeminiService] Content too short or failed for ${item.link}, skipping.`);
-            return null; // SKIP if no full content
-          }
-        } catch (e) {
-          console.warn(`Failed to fetch content for ${item.link}, skipping.`);
-          return null; // SKIP on error
+        let fullContent = "";
+        let videoUrl: string | undefined;
+
+        const articleData = await fetchArticleContent(item.link);
+
+        if (articleData) {
+          fullContent = articleData.text;
+          videoUrl = articleData.videoUrl;
+        } else {
+          console.log(`[GeminiService] Failed to fetch content for: ${item.title}`);
+          return null;
         }
+
+        // --- Content-Based Filtering ---
+        const lowerContent = fullContent.toLowerCase();
+        if (fullContent.length < 300) { // Strict length check
+          console.log(`[GeminiService] Skipping short content (${fullContent.length} chars): ${item.title}`);
+          return null;
+        }
+        if (
+          lowerContent.includes('earn a commission') ||
+          lowerContent.includes('affiliate commission') ||
+          lowerContent.includes('shopping link') ||
+          lowerContent.includes('buy through our links') ||
+          lowerContent.includes('subscribe to read') ||
+          lowerContent.includes('log in to access') ||
+          lowerContent.includes('register to continue')
+        ) {
+          console.log(`[GeminiService] Skipping affiliate/paywalled content: ${item.title}`);
+          return null;
+        }
+        const contextText = fullContent.slice(0, 8000); // Increased context window
+
+        return { ...item, id: index, contextText, videoUrl }; // Pass videoUrl along
       } else {
         // Browser fallback (shouldn't happen in production fetch)
         return null;
       }
-
-      return `
-      Item ID: ${index}
-      Title: ${item.title}
-      Content: ${contextText}
-    `});
+    });
 
     const resolvedContexts = await Promise.all(articlesContextPromises);
-    const validContexts = resolvedContexts.filter(c => c !== null);
+    const validContexts = resolvedContexts.filter((c): c is NonNullable<typeof c> => c !== null);
 
     if (validContexts.length === 0) {
       console.log("[GeminiService] No valid articles with full content found.");
       return [];
     }
 
-    const articlesContext = validContexts.join('\n\n');
+    const articlesContext = validContexts.map(c => `
+      Item ID: ${c.id}
+      Title: ${c.title}
+      Content: ${c.contextText}
+    `).join('\n\n');
 
     const systemInstruction = `You are a professional journalist for "City666".
-    Your task is to summarize the provided news items based on their **FULL CONTENT**.
-    
-    INPUT: A list of news items with ID, Title, and Full Content.
-    OUTPUT: A JSON array of news objects.
-
-    CRITICAL RULES:
-    1. **Content Quality**: Read the **FULL CONTENT** carefully. Summarize the **MAIN EVENT** into a **SINGLE, CONCISE PARAGRAPH** (approx 150-200 Chinese characters).
-    2. **No Lists**: Do NOT output bullet points or a list of headlines. Integrate the information into a coherent narrative paragraph.
-    3. **Single Story Focus**: If the content mentions multiple events (e.g. a digest), pick the **MOST IMPORTANT ONE** and focus solely on that.
-    4. **Language**: ALWAYS write Title and Content in **CHINESE (Simplified)**.
-    5. **ID**: You MUST return the exact **Item ID** provided in the input.
-    6. **Source**: Extract the source name from the Title (e.g. 'CBC', 'CTV').
-    7. **No Generic Content**: If the content is "Subscribe to read" or "Enable JS", ignore it.
-
-    Output JSON Format:
-    [{ "id": 0, "title": "Chinese Title", "summary": "Concise Chinese Paragraph", "content": "Concise Chinese Paragraph", "source_name": "Source" }]
-    `;
+      Your task is to summarize the provided news items based on their **FULL CONTENT**.
+      
+      INPUT: A list of news items with ID, Title, and Full Content.
+      OUTPUT: A JSON array of news objects.
+  
+      CRITICAL RULES:
+      1. **Content Quality**: Read the **FULL CONTENT** carefully. Summarize the **MAIN EVENT** into a **SINGLE, CONCISE PARAGRAPH** (approx 150-200 Chinese characters).
+      2. **No Lists**: Do NOT output bullet points or a list of headlines. Integrate the information into a coherent narrative paragraph.
+      3. **Single Story Focus**: If the content mentions multiple events (e.g. a digest), pick the **MOST IMPORTANT ONE** and focus solely on that.
+      4. **Language**: ALWAYS write Title and Content in **CHINESE (Simplified)**.
+      5. **ID**: You MUST return the exact **Item ID** provided in the input.
+      6. **Source**: Extract the source name from the Title (e.g. 'CBC', 'CTV').
+      7. **No Generic Content**: If the content is "Subscribe to read" or "Enable JS", ignore it.
+  
+      Output JSON Format:
+      [{ "id": 0, "title": "Chinese Title", "summary": "Concise Chinese Paragraph", "content": "Concise Chinese Paragraph", "source_name": "Source" }]
+      `;
 
     // 3. Generate Summaries with Gemini
     const response = await generateWithRetry("gemini-2.0-flash", {
@@ -932,6 +977,10 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
       // Map back to original search result using ID
       const originalItem = limitedResults[aiItem.id];
       if (!originalItem) continue;
+
+      // Find the context object to get the videoUrl
+      const contextObj = validContexts.find(c => c.id === aiItem.id);
+      const extractedVideoUrl = contextObj?.videoUrl;
 
       let sourceUrl = originalItem.link;
       let imageUrl: string | undefined = undefined;
@@ -981,7 +1030,7 @@ export const fetchNewsFromAI = async (category: string, context?: string): Promi
         imageUrl: imageUrl,
         source: `CitySquare 整理自 ${aiItem.source_name || '互联网'}`,
         sourceUrl: sourceUrl,
-        youtubeUrl: undefined, // Google Search API doesn't easily give this, ignore for now
+        youtubeUrl: extractedVideoUrl || undefined, // Map extracted videoUrl to youtubeUrl field
         city: category === NewsCategory.LOCAL ? context : undefined
       });
     }

@@ -103,19 +103,34 @@ const NewsCard: React.FC<NewsCardProps> = ({
                     {expandedNewsId === item.id ? (item.content || item.summary) : item.summary}
                 </div>
 
-                {/* YouTube Embed (if expanded) */}
-                {expandedNewsId === item.id && videoId && (
-                    <div className="mb-5 rounded-xl overflow-hidden shadow-md bg-black aspect-video">
-                        <iframe
-                            width="100%"
-                            height="100%"
-                            src={`https://www.youtube.com/embed/${videoId}`}
-                            title="YouTube video player"
-                            frameBorder="0"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                        ></iframe>
-                    </div>
+                {/* Video Embed (YouTube or Generic) */}
+                {expandedNewsId === item.id && (
+                    videoId ? (
+                        // YouTube Player
+                        <div className="mb-5 rounded-xl overflow-hidden shadow-md bg-black aspect-video">
+                            <iframe
+                                width="100%"
+                                height="100%"
+                                src={`https://www.youtube.com/embed/${videoId}`}
+                                title="YouTube video player"
+                                frameBorder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                            ></iframe>
+                        </div>
+                    ) : item.youtubeUrl ? (
+                        // Generic Video Player (MP4 etc) - stored in youtubeUrl field for now
+                        <div className="mb-5 rounded-xl overflow-hidden shadow-md bg-black aspect-video">
+                            <video
+                                controls
+                                className="w-full h-full"
+                                poster={item.imageUrl}
+                            >
+                                <source src={item.youtubeUrl} type="video/mp4" />
+                                您的浏览器不支持视频播放。
+                            </video>
+                        </div>
+                    ) : null
                 )}
 
                 {/* 5. Actions & Read Original Link */}
